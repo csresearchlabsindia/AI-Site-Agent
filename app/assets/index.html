@@ -1,0 +1,127 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASA Mission Control</title><style>
+:root{--bg:#0f1115;--card:#171a21;--mut:#8a93a6;--ok:#1f9d55;--bad:#d64545;--wait:#5b6475;--info:#2f6fd6;--amb:#c98a1b;--line:#232734}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#e8ebf1;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:inherit}header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line)}
+h1{font-size:18px;margin:0}h3{margin:0}.sub{color:var(--mut);font-size:12px}
+main{display:grid;grid-template-columns:2fr 1fr;gap:16px;padding:16px 20px}@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:12px;padding:14px}.wide{grid-column:1/-1}
+#banner{font-size:26px;font-weight:800;padding:18px;border-radius:12px;text-align:center}
+.CLEAR{background:var(--ok)}.VIOLATION{background:var(--bad);animation:p 1s infinite}.OFFLINE,.STARTING{background:var(--wait)}
+@keyframes p{50%{filter:brightness(1.3)}}
+#cam{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9;object-fit:contain;margin-top:12px;display:block}
+.stats{display:grid;gap:10px;grid-template-columns:repeat(3,1fr);margin-top:12px}.stats4{display:grid;gap:10px;grid-template-columns:repeat(4,1fr);margin-bottom:14px}
+@media(max-width:700px){.stats4{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#10131a;border-radius:10px;padding:10px;text-align:center}.stat b{display:block;font-size:22px}.stat span{color:var(--mut);font-size:12px}
+#log{list-style:none;margin:10px 0 0;padding:0;max-height:380px;overflow:auto;font-size:13px}#log li{padding:8px 4px;border-bottom:1px solid var(--line)}
+.t{color:var(--mut);margin-right:8px}.arch{color:var(--mut);font-size:12px;line-height:1.6;margin-top:12px}
+.evhead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#10131a;color:#cfd5e1;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer}
+.chip.on{background:#e8ebf1;color:#0f1115;border-color:#e8ebf1;font-weight:700}
+.btn{background:#232838;color:#e8ebf1;text-decoration:none;padding:8px 12px;border-radius:8px;font-size:13px;border:none;cursor:pointer}.btn:hover{background:#2d3448}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-height:560px;overflow:auto;padding-right:4px}
+.ev{background:#10131a;border-radius:10px;overflow:hidden;font-size:12px;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .15s}
+.ev:hover{border-color:#3a4256;transform:translateY(-2px)}.ev.nopic{cursor:default;transform:none}
+.ev img,.ev .ph{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#0b0d12}
+.ev .ph{display:flex;align-items:center;justify-content:center;color:var(--mut)}.ev .m{padding:8px;line-height:1.5}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-weight:700;font-size:11px;color:#fff}
+#lb{position:fixed;inset:0;background:rgba(5,6,9,.95);display:none;z-index:50;flex-direction:column}#lb.open{display:flex}
+#lbTop{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;gap:12px}
+#lbStage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;padding:0 70px}
+#lbImg{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6);user-select:none}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:50px;height:50px;border-radius:50%;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:26px;cursor:pointer}
+.nav:hover{background:rgba(255,255,255,.25)}.nav:disabled{opacity:.2;cursor:default}#prev{left:12px}#next{right:12px}
+#lbMeta{padding:10px 18px 4px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:14px}
+#strip{display:flex;gap:6px;overflow-x:auto;padding:8px 18px 16px}
+#strip img{height:56px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;opacity:.45;cursor:pointer;border:2px solid transparent;flex:none}
+#strip img.cur{opacity:1;border-color:#e8ebf1}kbd{background:#232838;border-radius:4px;padding:1px 6px;font-size:11px}
+</style><style>
+#vctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+#vSpk{width:10px;height:10px;border-radius:50%;background:#d9534f;display:inline-block}
+#vSpk.on{background:#3fb950}
+#vctl select{background:transparent;color:inherit;border:1px solid rgba(127,127,127,.45);border-radius:6px;padding:3px 6px}
+#vctl select option{color:#000}
+#vVol{width:110px;vertical-align:middle}
+</style>
+</head><body>
+<header><div><h1>ASA · Mission Control</h1><div class="sub">AI-Site-Agent · Arduino UNO Q + OAK-D · Unit ASA-01</div></div><div id="vctl"><span id="vSpk"></span><span id="vSpkT">speaker…</span><select id="vLang" title="Site language"><option value="en">English</option><option value="ta">தமிழ்</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select><label title="Speaker volume (minimum 30% - a safety robot cannot be muted)">Vol <input type="range" id="vVol" min="30" max="100" step="5" value="70"> <b id="vVolN">70%</b></label><button class="btn" id="vTest">▶ Test</button><span class="sub" id="vWarm"></span></div><div class="sub" id="conn">connecting…</div></header>
+<main>
+<section class="card"><div id="banner" class="OFFLINE">CONNECTING…</div><img id="cam" alt="live view">
+<div class="stats"><div class="stat"><b id="fps">–</b><span>AI FPS (Myriad X)</span></div><div class="stat"><b id="ppl">–</b><span>People in view</span></div><div class="stat"><b id="ev">–</b><span>Violations (session)</span></div></div></section>
+<section class="card"><h3>Event log</h3><ul id="log"></ul>
+<div class="arch">OAK-D (Myriad X) detects people + hard hats in 3D → UNO Q Linux applies the on-head rule, speaks alerts, records evidence and serves this page → Bridge → STM32 shows status on the LED matrix.</div></section>
+<section class="card wide"><div class="evhead"><h3>Compliance evidence</h3><div class="chips" id="chips"></div><a id="csv" class="btn">⬇ Audit CSV</a></div>
+<div class="stats4"><div class="stat"><b id="eC">–</b><span>Compliance checks passed</span></div><div class="stat"><b id="eV">–</b><span>Violations recorded</span></div><div class="stat"><b id="eR">–</b><span>Resolved on the spot</span></div><div class="stat"><b id="eT">–</b><span>Avg time to comply</span></div></div>
+<div id="gallery" class="grid"></div>
+<div class="sub" style="margin-top:10px">Click a snapshot to open the viewer · <kbd>←</kbd> <kbd>→</kbd> browse · <kbd>Esc</kbd> close · stored on the robot for 14 days</div></section>
+</main>
+<div id="lb"><div id="lbTop"><div><b>Evidence viewer</b> <span class="sub" id="lbCount"></span></div>
+<div style="display:flex;gap:8px"><a id="lbDl" class="btn" target="_blank">↗ Full size</a><button class="btn" id="lbClose">✕ Close</button></div></div>
+<div id="lbStage"><button class="nav" id="prev" title="Newer (←)">‹</button><img id="lbImg" alt="evidence"><button class="nav" id="next" title="Older (→)">›</button></div>
+<div id="lbMeta"></div><div id="strip"></div></div>
+<script>
+const $=id=>document.getElementById(id), API=`http://${location.hostname}:8090`;
+(function(){function camOn(){$('cam').src=API+'/video?t='+Date.now();}$('cam').onerror=function(){setTimeout(camOn,2000);};camOn();})(); $('csv').href=API+'/evidence.csv'; let prev=null;
+function add(t){const li=document.createElement('li');li.innerHTML=`<span class="t">${new Date().toLocaleTimeString()}</span>${t}`;$('log').prepend(li);while($('log').children.length>50)$('log').lastChild.remove();}
+async function tick(){try{const s=await(await fetch(API+'/state',{cache:'no-store'})).json(),v=s.violation||{};
+$('conn').textContent='vision service: online';$('banner').className=s.status;
+$('banner').textContent=s.status==='VIOLATION'?`⚠ ${(v.reason||'').toUpperCase()} — ${((v.z||0)/1000).toFixed(1)} m`:s.status==='CLEAR'?'✓ ALL CLEAR':s.status;
+$('fps').textContent=s.fps;$('ppl').textContent=(s.persons||[]).length;$('ev').textContent=s.events;
+if(prev&&s.status!==prev)add(s.status==='VIOLATION'?`🔴 Violation #${s.events}: ${v.reason} at ${((v.z||0)/1000).toFixed(1)} m`:`🟢 Clear (${s.clear_reason||'-'})`);prev=s.status;
+}catch(e){$('banner').className='OFFLINE';$('banner').textContent='VISION OFFLINE';$('conn').textContent='vision service: offline';if(prev!=='OFFLINE')add('⚪ Vision service offline');prev='OFFLINE';}}
+const TAG={SYSTEM:'var(--wait)',COMPLIANT:'var(--ok)',VIOLATION:'var(--bad)',RESOLVED:'var(--info)',UNRESOLVED:'var(--amb)'};
+const TYPES=['ALL','VIOLATION','RESOLVED','COMPLIANT','UNRESOLVED','SYSTEM'];
+let EV=[],filt='ALL',sig='',view=[],cur=-1;
+const fmt=ts=>ts?new Date(ts).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'';
+const img=r=>`${API}/evidence/${r.image}`;
+const detail=r=>r.type==='RESOLVED'?`complied in ${r.response_s} s`:r.type==='UNRESOLVED'?`left zone after ${r.response_s} s`:(r.z_mm?`at ${(r.z_mm/1000).toFixed(1)} m`:'');
+const list=()=>filt==='ALL'?EV:EV.filter(r=>r.type===filt);
+function renderChips(){$('chips').innerHTML=TYPES.map(t=>{const n=t==='ALL'?EV.length:EV.filter(r=>r.type===t).length;
+return `<button class="chip ${t===filt?'on':''}" data-t="${t}">${t==='ALL'?'All':t[0]+t.slice(1).toLowerCase()} (${n})</button>`;}).join('');}
+function renderGallery(){$('gallery').innerHTML=list().map(r=>{const pic=r.image?`<img loading="lazy" src="${img(r)}" alt="">`:`<div class="ph">log only</div>`;
+return `<div class="ev ${r.image?'':'nopic'}" ${r.image?`data-img="${r.image}"`:''}>${pic}<div class="m"><span class="tag" style="background:${TAG[r.type]||'var(--wait)'}">${r.type}</span>${r.event?` <span class="sub">#${r.event}</span>`:''}<div>${fmt(r.ts)}</div><div class="sub">${r.reason||''} · ${detail(r)}</div></div></div>`;}).join('')||'<div class="sub">No evidence yet.</div>';}
+function stats(){const n=t=>EV.filter(r=>r.type===t).length,V=n('VIOLATION'),R=EV.filter(r=>r.type==='RESOLVED');
+$('eC').textContent=n('COMPLIANT');$('eV').textContent=V;$('eR').textContent=V?Math.min(100,Math.round(100*R.length/V))+'%':'–';
+$('eT').textContent=R.length?(R.reduce((a,r)=>a+(r.response_s||0),0)/R.length).toFixed(1)+' s':'–';}
+async function evid(){try{const L=await(await fetch(API+'/evidence',{cache:'no-store'})).json();const s=L.length+'|'+((L[0]||{}).ts||'');
+if(s===sig)return;sig=s;EV=L;stats();renderChips();renderGallery();if($('lb').classList.contains('open'))syncView();}catch(e){}}
+function syncView(){const key=view[cur]&&view[cur].image;view=list().filter(r=>r.image);cur=Math.max(0,view.findIndex(r=>r.image===key));renderStrip();show();}
+function openLB(key){view=list().filter(r=>r.image);cur=view.findIndex(r=>r.image===key);if(cur<0)return;
+$('lb').classList.add('open');document.body.style.overflow='hidden';renderStrip();show();}
+function closeLB(){$('lb').classList.remove('open');document.body.style.overflow='';}
+function renderStrip(){$('strip').innerHTML=view.map((r,i)=>`<img loading="lazy" src="${img(r)}" data-i="${i}" alt="">`).join('');}
+function show(){const r=view[cur];if(!r)return;$('lbImg').src=img(r);$('lbDl').href=img(r);
+$('lbCount').textContent=`${cur+1} / ${view.length}${filt!=='ALL'?' · '+filt.toLowerCase():''}`;
+$('lbMeta').innerHTML=`<span class="tag" style="background:${TAG[r.type]}">${r.type}</span>${r.event?`<span>Event #${r.event}</span>`:''}<span>${fmt(r.ts)}</span><span class="sub">${r.reason||''}</span><span class="sub">${detail(r)}</span>${r.people?`<span class="sub">${r.people} in view</span>`:''}<span class="sub">${r.unit||''}</span>`;
+$('prev').disabled=cur<=0;$('next').disabled=cur>=view.length-1;
+[...$('strip').children].forEach((el,i)=>el.classList.toggle('cur',i===cur));
+const c=$('strip').children[cur];if(c)c.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+[cur-1,cur+1].forEach(i=>{if(view[i])new Image().src=img(view[i]);});}
+function go(d){const n=cur+d;if(n>=0&&n<view.length){cur=n;show();}}
+$('chips').onclick=e=>{const t=e.target.dataset.t;if(t){filt=t;renderChips();renderGallery();}};
+$('gallery').onclick=e=>{const c=e.target.closest('.ev');if(c&&c.dataset.img)openLB(c.dataset.img);};
+$('strip').onclick=e=>{const i=e.target.dataset.i;if(i!==undefined){cur=+i;show();}};
+$('prev').onclick=()=>go(-1);$('next').onclick=()=>go(1);$('lbClose').onclick=closeLB;
+$('lbStage').onclick=e=>{if(e.target.id==='lbStage')closeLB();};
+document.addEventListener('keydown',e=>{if(!$('lb').classList.contains('open'))return;
+if(e.key==='ArrowLeft')go(-1);else if(e.key==='ArrowRight')go(1);else if(e.key==='Escape')closeLB();});
+let tx=null;$('lbStage').addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+$('lbStage').addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(dx<0?1:-1);tx=null;});
+setInterval(tick,500);tick();setInterval(evid,3000);evid();
+</script><script>
+(()=>{const g=id=>document.getElementById(id),NAMES={en:'English',ta:'தமிழ்',hi:'हिन्दी',fr:'Français'};let P=null,drag=false;
+async function api(q){for(const c of (P!==null?[P]:['','/api'])){try{const r=await fetch(c+'/asa/'+q,{cache:'no-store'});if(r.ok){P=c;return await r.json()}}catch(e){}}throw new Error('api')}
+let sw=0;function paint(s){if(s.error){if(Date.now()-sw<40000){g('vWarm').textContent='switching language…';return}g('vSpk').className='';g('vSpkT').textContent='voice offline';return}
+ g('vSpk').className=s.speaker?'on':'';g('vSpkT').textContent=s.speaker?'Speaker online':'Speaker OFFLINE';
+ if(document.activeElement!==g('vLang'))g('vLang').value=s.lang;
+ if(!drag&&s.volume!=null){const v=Math.round(s.volume*100);g('vVol').value=v;g('vVolN').textContent=v+'%'}
+ {const L=NAMES[s.lang]||s.lang;g('vWarm').textContent=!s.voice_ready?`loading ${L} voice…`:(s.cached<s.total?`preparing ${L} phrases ${s.cached}/${s.total}…`:'')}}
+async function poll(){try{paint(await api('status'))}catch(e){paint({error:1})}}
+g('vLang').onchange=async e=>{sw=Date.now();g('vWarm').textContent='switching…';try{await api('lang?value='+e.target.value)}catch(_){};poll()};
+g('vVol').oninput=e=>{drag=true;g('vVolN').textContent=e.target.value+'%'};
+g('vVol').onchange=async e=>{try{await api('volume?value='+(e.target.value/100).toFixed(2))}catch(_){};drag=false;poll()};
+g('vTest').onclick=async()=>{try{await api('test')}catch(_){}};
+poll();setInterval(poll,3000)})();
+</script>
+</body></html>
