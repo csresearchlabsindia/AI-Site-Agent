@@ -1,0 +1,16 @@
+[Unit]
+Description=ASA voice alerts
+After=asa-vision.service bluetooth.service user@1000.service
+Wants=asa-vision.service user@1000.service
+
+[Service]
+User=arduino
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStartPre=/home/arduino/asa_bt_speaker.sh wait
+ExecStart=/home/arduino/oak-venv/bin/python -u /home/arduino/asa_voice.py --live
+Restart=always
+RestartSec=5
+TimeoutStartSec=150
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+oak-venv/
+voices/
+asa-evidence/
+asa-voice/cache/
+__pycache__/
+*.pyc
+*.onnx
+*.blob
+*.eim

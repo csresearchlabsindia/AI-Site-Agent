@@ -1,0 +1,77 @@
+{
+ "ta": {
+  "voice": "/home/arduino/voices/ta_IN-rasa_female-medium.onnx",
+  "phrases": {
+   "startup": "கட்டுமான தள பாதுகாப்பு உதவியாளர் தயார்.",
+   "no_hardhat": "கவனிக்கவும். நீங்கள் ஹெல்மெட் அணியவில்லை. உங்கள் பாதுகாப்பிற்காக தயவுசெய்து ஹெல்மெட் அணியுங்கள்.",
+   "not_on_head": "தயவுசெய்து ஹெல்மெட்டை கையில் வைக்காமல், தலையில் அணியுங்கள்.",
+   "reminder": "நினைவூட்டல். இந்தப் பகுதியில் ஹெல்மெட் கட்டாயம்.",
+   "thanks": "நன்றி. ஹெல்மெட் உறுதிசெய்யப்பட்டது. பாதுகாப்பாக இருங்கள்.",
+   "status_ack": "நிலை அறிக்கை.",
+   "compliant": "ஹெல்மெட் உறுதிசெய்யப்பட்டது. உங்கள் பணி பாதுகாப்பாக அமையட்டும்.",
+   "service_recovered": "அறிவிப்பு. குரல் அமைப்பு ஒரு பிழையிலிருந்து மீண்டது.",
+   "reboot_notice": "அறிவிப்பு. அமைப்பு மறுதொடக்கம் செய்யப்பட்டது.",
+   "power_loss": "எச்சரிக்கை. எதிர்பாராத மின் நிறுத்தத்திலிருந்து அமைப்பு மீண்டது. தயவுசெய்து மின் இணைப்பைச் சரிபார்க்கவும்.",
+   "vision_offline": "எச்சரிக்கை. பாதுகாப்பு கேமரா இயங்கவில்லை. கண்காணிப்பு நிறுத்தப்பட்டுள்ளது.",
+   "vision_online": "பாதுகாப்பு கேமரா மீண்டும் இயங்குகிறது. கண்காணிப்பு தொடர்கிறது."
+  },
+  "report": {
+   "offline": "எச்சரிக்கை. பாதுகாப்பு கேமரா இயங்கவில்லை. கண்காணிப்பு நிறுத்தப்பட்டுள்ளது.",
+   "violation": "கவனிக்கவும். பகுதியில் ஒருவர் ஹெல்மெட் அணியவில்லை.",
+   "clear": "பகுதியில் யாரும் இல்லை.",
+   "all_safe": "பகுதியில் {n} பேர் உள்ளனர், அனைவரும் ஹெல்மெட் அணிந்துள்ளனர்.",
+   "checking": "பகுதியில் {n} பேர் உள்ளனர். ஹெல்மெட் சரிபார்க்கப்படுகிறது.",
+   "today": "இன்று: சரியான சோதனைகள் {c}, விதிமீறல்கள் {v}, உடனே சரிசெய்யப்பட்டவை {r}. கண்காணிப்பு செயலில் உள்ளது."
+  }
+ },
+ "hi": {
+  "voice": "/home/arduino/voices/hi_IN-priyamvada-medium.onnx",
+  "phrases": {
+   "startup": "साइट सुरक्षा सहायक चालू है।",
+   "no_hardhat": "ध्यान दें। आपने हेलमेट नहीं पहना है। कृपया अपनी सुरक्षा के लिए हेलमेट पहनें।",
+   "not_on_head": "कृपया हेलमेट हाथ में नहीं, सिर पर पहनें।",
+   "reminder": "याद रखें। इस क्षेत्र में हेलमेट पहनना ज़रूरी है।",
+   "thanks": "धन्यवाद। हेलमेट की पुष्टि हो गई। सुरक्षित रहें।",
+   "status_ack": "स्थिति रिपोर्ट।",
+   "compliant": "हेलमेट की पुष्टि हो गई। आपकी शिफ्ट सुरक्षित रहे।",
+   "service_recovered": "सूचना। वॉइस सिस्टम एक खराबी से ठीक हो गया है।",
+   "reboot_notice": "सूचना। सिस्टम दोबारा चालू किया गया।",
+   "power_loss": "चेतावनी। सिस्टम अचानक बंद होने के बाद फिर से चालू हुआ है। कृपया बिजली की जाँच करें।",
+   "vision_offline": "चेतावनी। सुरक्षा कैमरा बंद है। निगरानी रुकी हुई है।",
+   "vision_online": "सुरक्षा कैमरा फिर से चालू है। निगरानी दोबारा शुरू।"
+  },
+  "report": {
+   "offline": "चेतावनी। सुरक्षा कैमरा बंद है। निगरानी रुकी हुई है।",
+   "violation": "ध्यान दें। क्षेत्र में एक कर्मचारी ने हेलमेट नहीं पहना है।",
+   "clear": "क्षेत्र खाली है।",
+   "all_safe": "क्षेत्र में {n} व्यक्ति हैं, सभी ने हेलमेट पहना है।",
+   "checking": "क्षेत्र में {n} व्यक्ति हैं। हेलमेट की जाँच हो रही है।",
+   "today": "आज: सफल जाँच {c}, उल्लंघन {v}, मौके पर सुधारे गए {r}। निगरानी चालू है।"
+  }
+ },
+ "fr": {
+  "voice": "/home/arduino/voices/fr_FR-siwis-medium.onnx",
+  "phrases": {
+   "startup": "Assistant de sécurité du chantier en ligne.",
+   "no_hardhat": "Attention, s'il vous plaît. Vous ne portez pas de casque. Veuillez porter votre casque pour votre sécurité.",
+   "not_on_head": "Veuillez porter votre casque sur la tête, pas à la main.",
+   "reminder": "Rappel. Le port du casque est obligatoire dans cette zone.",
+   "thanks": "Merci. Casque confirmé. Soyez prudent.",
+   "status_ack": "Rapport d'état.",
+   "compliant": "Casque confirmé. Travaillez en sécurité.",
+   "service_recovered": "Information. Le système vocal a récupéré d'une panne.",
+   "reboot_notice": "Information. Le système a redémarré.",
+   "power_loss": "Avertissement. Le système a redémarré après un arrêt inattendu. Veuillez vérifier l'alimentation.",
+   "vision_offline": "Avertissement. Caméra de sécurité hors ligne. Surveillance suspendue.",
+   "vision_online": "Caméra de sécurité de nouveau en ligne. Surveillance reprise."
+  },
+  "report": {
+   "offline": "Avertissement. Caméra de sécurité hors ligne. Surveillance suspendue.",
+   "violation": "Attention. Un travailleur dans la zone ne porte pas de casque.",
+   "clear": "La zone est dégagée.",
+   "all_safe": "Personnes dans la zone : {n}, toutes portent un casque.",
+   "checking": "Personnes dans la zone : {n}. Vérification des casques en cours.",
+   "today": "Aujourd'hui : contrôles réussis {c}, infractions {v}, corrigées sur place {r}. Surveillance active."
+  }
+ }
+}

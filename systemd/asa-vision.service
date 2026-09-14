@@ -1,0 +1,14 @@
+[Unit]
+Description=ASA vision service (OAK-D PPE detection)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=arduino
+WorkingDirectory=/home/arduino
+ExecStart=/home/arduino/oak-venv/bin/python -u /home/arduino/asa_vision.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
