@@ -1,0 +1,21 @@
+[Unit]
+Description=ASA journal (sessions, uptime, abnormalities)
+After=network.target local-fs.target
+Before=asa-vision.service asa-voice.service
+
+[Service]
+Type=simple
+User=arduino
+WorkingDirectory=/home/arduino
+ExecStart=/usr/bin/python3 -u /home/arduino/asa_journal.py serve
+StateDirectory=asa
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=20
+Nice=5
+CPUWeight=20
+CPUAffinity=0 1
+
+[Install]
+WantedBy=multi-user.target
