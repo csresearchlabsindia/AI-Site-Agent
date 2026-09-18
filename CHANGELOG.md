@@ -11,10 +11,17 @@ Categories: Added, Changed, Fixed, Removed, Hardware, Known issues.
 ### Added
 - `asa-journal` service: boot, shutdown and power-loss tracking, uptime/downtime rollup, restart-storm coalescing, web view and `/report` on :8095
 - `asa-stamp.sh` deploy stamper writing `/var/lib/asa/version.json`
+- asa-journal web view on :8095 with a Changelog tab reading `CHANGELOG.md` from the repo, marking the running version
+- Hold-to-drive teleop panel in the Mission Control dashboard: arm gate, speed cap, 10 Hz command repeat, halt on release, tab-switch or focus loss, 2-minute idle auto-disarm
+- `S_ATTENTION` LED state with a muted-speaker glyph, shown in place of IDLE while the Bluetooth speaker is offline; 90 s boot grace, 30 s poll, two-strike debounce, clears on first success
 
 ### Fixed
 - asa-journal HTTP server changed to ThreadingHTTPServer; a single stalled browser connection blocked all requests and hung the SIGTERM shutdown path, causing systemd to SIGKILL the process and skip the clean-shutdown marker
 - asa-journal uptime accounting stopped after an in-boot service restart; `session_start` now opens a session alongside `boot`
+
+### Known issues
+- KeywordSpotting brick raises `MicrophoneReadError: Attempted to read from Device before starting it` on every app shutdown - upstream teardown-order bug in the Arduino brick, cosmetic, no functional effect
+- Container log can be left with null bytes after an unclean stop, which makes `docker logs` abort; a restart rotates it
 
 ## [1.3.0] - 2026-09-13
 
