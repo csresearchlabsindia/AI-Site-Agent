@@ -10,7 +10,7 @@ CANDIDATES = ["http://172.17.0.1:8090/state", "http://192.168.1.122:8090/state",
               "http://host.docker.internal:8090/state", "http://127.0.0.1:8090/state"]
 VOICE_CMD = ["http://172.17.0.1:8091", "http://192.168.1.122:8091"]
 IDLE, VIOLATION, OFFLINE, THANKS, BOOT, COMPLIANT, CHECKING, NOT_ON_HEAD, LISTEN, THINK = range(10)
-NAMES = ["IDLE", "VIOLATION", "OFFLINE", "THANKS", "BOOT", "COMPLIANT", "CHECKING", "NOT_ON_HEAD", "LISTEN", "THINK"]
+NAMES = ["IDLE", "VIOLATION", "OFFLINE", "THANKS", "BOOT", "COMPLIANT", "CHECKING", "NOT_ON_HEAD", "LISTEN", "THINK", "ATTENTION"]
 st = {"url": None, "good": None, "code": None, "sent": 0.0, "status": None, "seen": False}
 kw = {"t": 0.0, "hold": False, "start": 0.0, "idle": 0}
 
@@ -158,6 +158,37 @@ def hold_listen():
     time.sleep(0.25)
     return True
 
+# ---------- degraded conditions ----------
+ATTENTION = 10
+spk = {"ok": True, "t": 0.0, "miss": 0}
+
+def speaker_ok():
+    """Cached speaker state. Polls :8091 every 30 s; 90 s boot grace; 2-strike debounce."""
+    now = time.monotonic()
+    if now < 90:
+        return True
+    if now - spk["t"] < 30:
+        return spk["ok"]
+    spk["t"] = now
+    try:
+        j = voice_get("/status", timeout=2)
+        if "error" in j:
+            return spk["ok"]
+        up = bool(j.get("speaker"))
+    except Exception:
+        return spk["ok"]          # a failed poll is not evidence of a dead speaker
+    if up:
+        if not spk["ok"]:
+            print("[asa-mc] speaker back - clearing ATTENTION", flush=True)
+        spk["miss"] = 0
+        spk["ok"] = True
+    else:
+        spk["miss"] += 1
+        if spk["miss"] >= 2 and spk["ok"]:
+            spk["ok"] = False
+            print("[asa-mc] speaker offline - LED ATTENTION", flush=True)
+    return spk["ok"]
+
 # ---------- LED state ----------
 def classify(s):
     status = s.get("status")
@@ -168,7 +199,7 @@ def classify(s):
         return BOOT
     people = s.get("persons") or []
     if not people:
-        return IDLE
+        return IDLE if speaker_ok() else ATTENTION
     return COMPLIANT if all(p.get("status") == "SAFE" for p in people) else CHECKING
 
 def loop():

@@ -12,7 +12,7 @@
 #include <math.h>
 Arduino_LED_Matrix matrix;
 uint8_t frame[104];
-enum { S_IDLE=0, S_VIOLATION=1, S_OFFLINE=2, S_THANKS=3, S_BOOT=4, S_COMPLIANT=5, S_CHECKING=6, S_NOT_ON_HEAD=7, S_LISTEN=8, S_THINK=9 };
+enum { S_IDLE=0, S_VIOLATION=1, S_OFFLINE=2, S_THANKS=3, S_BOOT=4, S_COMPLIANT=5, S_CHECKING=6, S_NOT_ON_HEAD=7, S_LISTEN=8, S_THINK=9, S_ATTENTION=10 };
 volatile int steady = S_BOOT;
 volatile unsigned long last_msg = 0, thanks_start = 0;
 volatile bool thanks_on = false;
@@ -26,6 +26,7 @@ const char* const ARROW[8]  = {"......#......",".....###.....","....#####....","
 const char* const ASA[8]    = {".............","..#..###..#..",".#.#.#...#.#.",".###.###.###.",".#.#...#.#.#.",".#.#.###.#.#.",".............","............."};
 const char* const MINI_OK[8]  = {".............",".............","..###.......#",".#####.....#.",".#####..#.#..","#######..#...",".............","............."};
 const char* const MINI_BAD[8] = {".............","........#...#","..###....#.#.",".#...#....#..",".#...#...#.#.","#######.#...#",".............","............."};
+const char* const SPK_MUTE[8] = {".............","....##.......","...###.#...#.",".#####..#.#..",".#####...#...",".#####..#.#..","...###.#...#.","....##......."};
 const char* const QMARK[8]  = {".....###.....","....#...#....","........#....",".......#.....","......#......","......#......",".............","......#......"};
 
 struct Glyph { char ch; const char* rows[5]; };
@@ -260,6 +261,18 @@ void loop() {
       }
       break; }
 #endif
+    case S_ATTENTION: {
+      unsigned long k = t % 3000;
+      if (k < 2000) {
+#if IDLE_FACE
+        idleFace(t);
+#else
+        drawIcon(ASA, 5); scanner(t);
+#endif
+      } else {
+        drawIcon(SPK_MUTE, (k % 500 < 250) ? 7 : 3);
+      }
+      break; }
     case S_THINK: listenThink(t); break;
     default: if ((t / 500) % 2 == 0) drawIcon(QMARK); break;
   }
