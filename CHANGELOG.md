@@ -8,6 +8,8 @@ Categories: Added, Changed, Fixed, Removed, Hardware, Known issues.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-18
+
 ### Added
 - `asa-journal` service: boot, shutdown and power-loss tracking, uptime/downtime rollup, restart-storm coalescing, web view and `/report` on :8095
 - `asa-stamp.sh` deploy stamper writing `/var/lib/asa/version.json`
