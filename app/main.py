@@ -123,6 +123,17 @@ def api_halt():
 
 ui.expose_api("GET", "/asa/drive", api_drive)
 ui.expose_api("GET", "/asa/halt", api_halt)
+
+def api_power():
+    try:
+        with _bl:
+            v = Bridge.call("pack_v")
+            e = Bridge.call("estop")
+        return {"ok": True, "pack_v": round(float(v), 2), "estop": bool(e)}
+    except Exception as ex:
+        return {"ok": False, "err": str(ex)}
+
+ui.expose_api("GET", "/asa/power", api_power)
 print(f"[asa-mc] voice settings API at '{getattr(ui, '_api_path_prefix', '')}/asa/*'", flush=True)
 
 spotter = KeywordSpotting()

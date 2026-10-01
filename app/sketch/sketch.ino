@@ -144,9 +144,12 @@ static void idleFace(unsigned long t) {
 }
 
 const int L_RPWM=3,L_LPWM=5,R_RPWM=6,R_LPWM=9,EN_ALL=4;
-const bool L_INVERT=false,R_INVERT=false;
+const bool L_INVERT=true,R_INVERT=false;
 const int PWM_MAX=200;
 const unsigned long DEADMAN_MS=400,RAMP_MS=250;
+const float PACK_K=0.017340f, ESTOP_V=8.0f, CLEAR_V=9.0f;   // A0 divider 33k+10k/10k, calibrated
+volatile float packV=0; volatile bool estop=false; volatile unsigned long last_cmd=0;
+unsigned long last_adc=0; uint8_t lowN=0;
 volatile int tgtL=0,tgtR=0; volatile unsigned long last_drive=0; volatile bool armed=false;
 int curL=0,curR=0; unsigned long last_tick=0;
 static void applySide(int rp,int lp,int v,bool inv){ if(inv)v=-v;
@@ -154,10 +157,18 @@ static void applySide(int rp,int lp,int v,bool inv){ if(inv)v=-v;
 static void driveOff(){ curL=curR=0;tgtL=tgtR=0;armed=false;
   analogWrite(L_RPWM,0);analogWrite(L_LPWM,0);analogWrite(R_RPWM,0);analogWrite(R_LPWM,0);
   digitalWrite(EN_ALL,LOW); }
-bool drive(int l,int r){ if(l>PWM_MAX)l=PWM_MAX; if(l<-PWM_MAX)l=-PWM_MAX;
+bool drive(int l,int r){ last_cmd=millis(); if(estop) return false; if(l>PWM_MAX)l=PWM_MAX; if(l<-PWM_MAX)l=-PWM_MAX;
   if(r>PWM_MAX)r=PWM_MAX; if(r<-PWM_MAX)r=-PWM_MAX;
   tgtL=l;tgtR=r;last_drive=millis();armed=true; return true; }
 bool halt(){ tgtL=0;tgtR=0;armed=false; return true; }
+float pack_v(){ return packV; }
+bool estop_state(){ return estop; }
+static void powerTick(unsigned long t){ if(t-last_adc<20)return; last_adc=t;
+  float v=analogRead(A0)*PACK_K;
+  packV=(packV<0.01f)?v:packV*0.8f+v*0.2f;
+  if(v<ESTOP_V){ if(lowN<3)lowN++; if(lowN>=3&&!estop){ estop=true; driveOff(); } }
+  else lowN=0;
+  if(estop&&packV>CLEAR_V&&t-last_cmd>1000) estop=false; }
 static int rampTo(int c,int t,int s){ if(t>c)return (t-c>s)?c+s:t; if(t<c)return (c-t>s)?c-s:t; return c; }
 static void driveTick(unsigned long t){ unsigned long dt=t-last_tick; if(dt<10)return; last_tick=t;
   if(armed&&t-last_drive>DEADMAN_MS){driveOff();return;}
@@ -176,6 +187,7 @@ void set_status(int s) {
 
 void setup() {
   pinMode(EN_ALL, OUTPUT);
+  analogReadResolution(10);
   driveOff();
   matrix.begin();
   matrix.setGrayscaleBits(3);
@@ -184,11 +196,14 @@ void setup() {
   Bridge.provide("set_status", set_status);
   Bridge.provide("drive", drive);
   Bridge.provide("halt", halt);
+  Bridge.provide("pack_v", pack_v);
+  Bridge.provide("estop", estop_state);
 }
 
 void loop() {
   memset(frame, 0, sizeof(frame));
   unsigned long t = millis();
+  powerTick(t);
   driveTick(t);
   int s = steady;
   if (thanks_on && t - thanks_start > (oneshot == S_LISTEN ? 2500UL : 3000UL)) thanks_on = false;

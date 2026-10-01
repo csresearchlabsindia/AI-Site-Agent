@@ -225,4 +225,51 @@ poll();setInterval(poll,3000)})();
  arm.addEventListener('change',setArm);
 })();
 </script>
+
+<!-- asa-power-card -->
+<style>
+#asa-power-card{position:fixed;right:16px;bottom:16px;z-index:9999;min-width:190px;
+ font:14px/1.35 system-ui,sans-serif;background:#1b1f24;color:#e8eaed;border:1px solid #333;
+ border-radius:12px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+#asa-power-card .t{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9aa0a6}
+#asa-power-card .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+#asa-power-card .bar{height:6px;background:#333;border-radius:3px;margin:6px 0 4px;overflow:hidden}
+#asa-power-card .bar i{display:block;height:100%;width:0;background:#34a853;transition:width .4s}
+#asa-power-card .s{font-size:12px;color:#9aa0a6}
+#asa-power-card.estop{background:#b3261e;border-color:#ff8a80}
+#asa-power-card.estop .t,#asa-power-card.estop .s{color:#fff}
+#asa-power-card.low .bar i{background:#fbbc04}
+#asa-estop-banner{display:none;position:fixed;left:0;right:0;top:0;z-index:9998;padding:10px;
+ text-align:center;font:700 18px system-ui,sans-serif;color:#fff;background:#b3261e;letter-spacing:.1em}
+</style>
+<div id="asa-estop-banner">■ E-STOP PRESSED: MOTORS DISABLED</div>
+<div id="asa-power-card">
+ <div class="t">Pack</div>
+ <div class="v"><span id="asa-pv">--.--</span> V</div>
+ <div class="bar"><i id="asa-pb"></i></div>
+ <div class="s" id="asa-ps">connecting…</div>
+</div>
+<script>
+(function(){
+ const T=[[12.6,100],[12.45,90],[12.33,80],[12.25,70],[12.07,60],[11.95,50],[11.86,40],[11.74,30],[11.62,20],[11.45,10],[11.1,0]];
+ function pct(v){ if(v>=T[0][0])return 100; for(let i=1;i<T.length;i++){ if(v>=T[i][0]){
+   const [v1,p1]=T[i-1],[v0,p0]=T[i]; return Math.round(p0+(v-v0)*(p1-p0)/(v1-v0)); } } return 0; }
+ const card=document.getElementById('asa-power-card'), ban=document.getElementById('asa-estop-banner'),
+       pv=document.getElementById('asa-pv'), pb=document.getElementById('asa-pb'), ps=document.getElementById('asa-ps');
+ async function tick(){
+  try{
+   const r=await fetch('/asa/power',{cache:'no-store'}); const d=await r.json();
+   if(!d.ok) throw new Error(d.err||'bridge');
+   const v=d.pack_v, p=pct(v);
+   card.classList.toggle('estop', d.estop); ban.style.display=d.estop?'block':'none';
+   card.classList.toggle('low', !d.estop && v<11.1);
+   if(d.estop){ pv.textContent='--.--'; pb.style.width='0'; ps.textContent='E-STOP: release, hands off 1 s'; }
+   else { pv.textContent=v.toFixed(2); pb.style.width=p+'%';
+     ps.textContent = v<10.5 ? '⚠ LOW: stop driving' : `≈${p}% (accurate at rest)`; }
+  }catch(e){ ps.textContent='no data: '+e.message; }
+ }
+ tick(); setInterval(tick,500);
+})();
+</script>
+
 </body></html>

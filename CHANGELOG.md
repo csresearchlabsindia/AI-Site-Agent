@@ -8,6 +8,15 @@ Categories: Added, Changed, Fixed, Removed, Hardware, Known issues.
 
 ## [Unreleased]
 
+### Added
+- E-stop detection: A0 senses the e-stop-switched motor rail through a 33k+10k/10k divider (ratio 0.18603, PACK_K 0.017340). The MCU latches a stop below 8 V and clears above 9 V after 1 s with no drive commands.
+- `/asa/power` API (pack voltage, e-stop state) and a Power card plus E-STOP banner on the dashboard.
+
+### Fixed
+- Left drive dead: D3/D5 jumper wires had no continuity; replaced.
+- Left side inverted: L_INVERT=true.
+
+
 ## [1.4.0] - 2026-09-18
 
 ### Added
