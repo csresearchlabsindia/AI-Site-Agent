@@ -1,0 +1,395 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASA Design Dossier</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7f8;--sf:#fff;--ln:#d9dde2;--fg:#1a1d21;--mut:#5d6570;--hv:#e0b000;--bad:#c9302c;--ok:#2a8f55;--info:#2b6fd6;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#15181c;--sf:#1e2227;--ln:#30363d;--fg:#eef0f2;--mut:#9aa3ad;--hv:#f5c518;--bad:#e5484d;--ok:#35b36a;--info:#4f8ff7}}
+:root[data-theme=dark]{--bg:#15181c;--sf:#1e2227;--ln:#30363d;--fg:#eef0f2;--mut:#9aa3ad;--hv:#f5c518;--bad:#e5484d;--ok:#35b36a;--info:#4f8ff7}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+header{padding:28px 20px 10px;max-width:1040px;margin:0 auto}
+h1{margin:0;font-size:30px;letter-spacing:-.02em}h1 small{display:block;font-size:14px;font-weight:400;color:var(--mut);margin-top:4px}
+nav{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--ln);z-index:5}
+nav div{max-width:1040px;margin:0 auto;display:flex;gap:2px;overflow-x:auto;padding:0 12px}
+nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--mut);padding:12px 12px;font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+nav button[aria-selected=true]{color:var(--fg);border-color:var(--hv)}
+main{max-width:1040px;margin:0 auto;padding:16px 20px 60px}
+section.tab{display:none}section.tab.on{display:block}
+h2{font-size:20px;margin:22px 0 8px}h3{font-size:16px;margin:20px 0 6px}
+p{max-width:72ch}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 14px}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--ln);vertical-align:top}th{color:var(--mut);font-weight:500}
+td code,p code,li code{font-family:var(--mono);font-size:13px;background:var(--sf);border:1px solid var(--ln);border-radius:4px;padding:0 5px}
+pre{font-family:var(--mono);font-size:13px;background:var(--sf);border:1px solid var(--ln);border-radius:8px;padding:12px 14px;overflow:auto}
+.fig{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:14px;margin:12px 0}
+.fig svg{width:100%;height:auto;display:block}.fig figcaption{font-size:13px;color:var(--mut);margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.note{border-left:3px solid var(--hv);padding:8px 14px;background:var(--sf);border-radius:0 8px 8px 0;margin:12px 0;max-width:72ch}
+.bad{border-color:var(--bad)}
+.k{color:var(--mut);font-size:13px}
+svg text{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:12px;fill:var(--fg)}svg .m{font-family:var(--mono);font-size:11px}svg .mut{fill:var(--mut)}
+svg .box{fill:var(--sf);stroke:var(--fg);stroke-width:1.2}svg .w{stroke:var(--fg);stroke-width:1.4;fill:none}svg .thick{stroke-width:3}
+svg .red{stroke:var(--bad)}svg .blk{stroke:var(--mut)}svg .yel{stroke:var(--hv)}svg .grn{stroke:var(--ok)}svg .blu{stroke:var(--info)}
+@media print{nav{display:none}section.tab{display:block;page-break-before:always}section.tab:first-of-type{page-break-before:auto}body{background:#fff;color:#111}}
+</style></head><body>
+<header><h1>ASA — AI-Site-Agent<small>End-to-end design dossier · unit ASA-01 · revision C, 1 October 2026 · CS Research Labs, Chennai</small></h1></header>
+<nav><div id="tabs">
+<button aria-selected="true" data-t="sys">System</button><button data-t="pwr">Power</button><button data-t="sig">Signals &amp; pins</button><button data-t="sense">Rail sense</button><button data-t="chassis">Chassis</button><button data-t="fw">Firmware &amp; safety</button><button data-t="sw">Software &amp; dashboard</button><button data-t="build">Build &amp; test</button><button data-t="rec">Records &amp; roadmap</button>
+</div></nav>
+<main>
+
+<!-- ===================== SYSTEM ===================== -->
+<section class="tab on" id="t-sys">
+<h2>What ASA is</h2>
+<p>A four-wheel skid-steer unit on an Arduino UNO Q that patrols a construction site, checks that hard hats are actually on heads using an OAK-D depth camera, speaks to workers in the site language, records evidence, and reports its own state — including battery and e-stop — to a web dashboard. Nothing about its ability to stop depends on Linux being healthy.</p>
+<h3>Revision C changes (1 Oct 2026)</h3>
+<table><tr><th>Area</th><th>Before</th><th>Now</th></tr>
+<tr><td>Drive</td><td>Dry click-through only</td><td>First drive on battery; all four directions verified; <code>L_INVERT=true</code></td></tr>
+<tr><td>E-stop awareness</td><td>Planned D2 contact</td><td>E-stop has one contact block carrying 12 V, so the MCU senses the switched motor rail on A0 through a 33k+10k/10k divider; latch in firmware</td></tr>
+<tr><td>Battery gauge</td><td>None</td><td>Same A0 reading, calibrated to the meter (0.01 V agreement); <code>/asa/power</code> API</td></tr>
+<tr><td>Power log</td><td>None</td><td><code>asa-powerlog</code> service, 30 s CSV, :8096, chart on the dashboard</td></tr>
+<tr><td>Dashboard</td><td>Single page plus floating cards</td><td>Status hero, tile strip, hazard band, four tabs (Live, Drive, Power, Evidence)</td></tr>
+<tr><td>Compute rail</td><td>XL4015</td><td>TPS565201 3 A buck with 220 µF on VIN</td></tr>
+</table>
+<figure class="fig"><svg viewBox="0 0 1000 440" role="img" aria-label="System block diagram">
+<rect class="box" x="30" y="40" width="200" height="80" rx="8"/><text x="130" y="70" text-anchor="middle" font-weight="600">OAK-D</text><text x="130" y="90" text-anchor="middle" class="mut">Myriad X · YOLOv6n people · YOLOv8n hats · stereo depth</text>
+<rect class="box" x="330" y="20" width="340" height="200" rx="8"/><text x="500" y="44" text-anchor="middle" font-weight="600">UNO Q · Qualcomm QRB2210 · Debian</text>
+<rect class="box" x="350" y="60" width="140" height="34" rx="5"/><text x="420" y="82" text-anchor="middle" class="m">asa-vision :8090</text>
+<rect class="box" x="510" y="60" width="140" height="34" rx="5"/><text x="580" y="82" text-anchor="middle" class="m">asa-voice :8091</text>
+<rect class="box" x="350" y="104" width="140" height="34" rx="5"/><text x="420" y="126" text-anchor="middle" class="m">asa-journal :8095</text>
+<rect class="box" x="510" y="104" width="140" height="34" rx="5"/><text x="580" y="126" text-anchor="middle" class="m">asa-powerlog :8096</text>
+<rect class="box" x="350" y="148" width="300" height="56" rx="5"/><text x="500" y="170" text-anchor="middle" class="m">App Lab · asa-mission-control :7000</text><text x="500" y="190" text-anchor="middle" class="mut">WebUI brick · KWS brick · RouterBridge · dashboard</text>
+<path class="w thick" d="M230 80 H330"/><text x="280" y="72" text-anchor="middle" class="mut">USB 3</text>
+<rect class="box" x="770" y="30" width="200" height="60" rx="8"/><text x="870" y="55" text-anchor="middle" font-weight="600">Phone / laptop</text><text x="870" y="75" text-anchor="middle" class="mut">dashboard over Wi-Fi</text>
+<path class="w" d="M670 60 H770"/>
+<rect class="box" x="770" y="110" width="200" height="60" rx="8"/><text x="870" y="135" text-anchor="middle" font-weight="600">Bluetooth speaker</text><text x="870" y="155" text-anchor="middle" class="mut">ZEB-CLIPPER · Piper TTS alerts</text>
+<path class="w" d="M670 140 H770"/>
+<rect class="box" x="30" y="150" width="200" height="60" rx="8"/><text x="130" y="175" text-anchor="middle" font-weight="600">USB mini mic</text><text x="130" y="195" text-anchor="middle" class="mut">"hey arduino" keyword</text>
+<path class="w" d="M230 180 H330"/>
+<path class="w thick" d="M500 220 V270"/><text x="520" y="250" class="mut">RouterBridge RPC · 5 handlers</text>
+<rect class="box" x="330" y="270" width="340" height="80" rx="8"/><text x="500" y="294" text-anchor="middle" font-weight="600">UNO Q · STM32U585 · Zephyr</text><text x="500" y="314" text-anchor="middle" class="mut">LED face 50 Hz · drive ramp · 400 ms deadman</text><text x="500" y="332" text-anchor="middle" class="mut">A0 rail sense · e-stop latch</text>
+<rect class="box" x="30" y="280" width="200" height="60" rx="8"/><text x="130" y="305" text-anchor="middle" font-weight="600">8×13 LED matrix</text><text x="130" y="325" text-anchor="middle" class="mut">on the UNO Q itself</text>
+<path class="w" d="M330 310 H230"/>
+<rect class="box" x="770" y="260" width="200" height="50" rx="8"/><text x="870" y="282" text-anchor="middle" font-weight="600">2 × BTS7960</text><text x="870" y="300" text-anchor="middle" class="mut">D3/D5 left · D6/D9 right · D4 enable</text>
+<path class="w" d="M670 285 H770"/>
+<rect class="box" x="770" y="330" width="200" height="50" rx="8"/><text x="870" y="352" text-anchor="middle" font-weight="600">4 × Johnson 100 RPM</text><text x="870" y="370" text-anchor="middle" class="mut">paralleled per side · 130 mm wheels</text>
+<path class="w thick" d="M870 310 V330"/>
+<path class="w yel" d="M770 400 H650 V350" stroke-dasharray="5 4"/><text x="710" y="394" text-anchor="middle" class="mut">A0 ← switched motor rail (divider)</text>
+<rect class="box" x="770" y="385" width="200" height="40" rx="8"/><text x="870" y="410" text-anchor="middle" font-weight="600">E-stop · fuse · LiPo</text>
+</svg><figcaption>Fig. 1 — System. The Linux side owns perception, speech and the dashboard; the MCU owns anything that must happen on time. The dashed line is new in revision C: the MCU reads the motor rail so it knows the e-stop state and the pack voltage.</figcaption></figure>
+<h3>Ports and services</h3>
+<table><tr><th>Port</th><th>Service</th><th>Runs as</th><th>What it serves</th></tr>
+<tr><td>8090</td><td>asa-vision</td><td>systemd</td><td><code>/state</code>, <code>/video</code> MJPEG, <code>/evidence</code>, <code>/evidence.csv</code></td></tr>
+<tr><td>8091</td><td>asa-voice</td><td>systemd, cores 2–3</td><td><code>/status</code>, <code>/lang</code>, <code>/volume</code>, <code>/say</code>, <code>/report</code>, <code>/busy</code></td></tr>
+<tr><td>8095</td><td>asa-journal</td><td>systemd</td><td>boot / power-loss / uptime record, changelog view</td></tr>
+<tr><td>8096</td><td>asa-powerlog</td><td>systemd</td><td><code>/log?hours=N</code>, <code>/power.csv</code></td></tr>
+<tr><td>7000</td><td>asa-mission-control</td><td>App Lab (default app)</td><td>dashboard, <code>/asa/*</code> API proxying the above and the MCU</td></tr>
+</table>
+</section>
+
+<!-- ===================== POWER ===================== -->
+<section class="tab" id="t-pwr">
+<h2>Power</h2>
+<p>One 3S pack, two rails. The fuse and kill switch sit before the split so they protect everything; the e-stop sits after the split so it kills drive power only and leaves the robot able to say it was stopped. The compute rail is a 3 A buck feeding the UNO Q through its USB-C PD adapter, plus the OAK-D and the hub.</p>
+<figure class="fig"><svg viewBox="0 0 1000 420" role="img" aria-label="Power schematic">
+<rect class="box" x="20" y="150" width="110" height="70" rx="6"/><text x="75" y="178" text-anchor="middle" font-weight="600">LiPo 3S</text><text x="75" y="196" text-anchor="middle" class="mut">2200 mAh 25C</text><text x="75" y="212" text-anchor="middle" class="mut">XT60</text>
+<path class="w thick red" d="M130 165 H190"/>
+<rect class="box" x="190" y="150" width="60" height="30" rx="4"/><text x="220" y="170" text-anchor="middle" class="m">F1 25 A</text>
+<path class="w thick red" d="M250 165 H300"/>
+<rect class="box" x="300" y="150" width="70" height="30" rx="4"/><text x="335" y="170" text-anchor="middle" class="m">kill SW</text>
+<path class="w thick red" d="M370 165 H430"/><circle cx="430" cy="165" r="4" fill="var(--fg)"/><text x="430" y="150" text-anchor="middle" class="m">J1</text>
+<!-- drive branch -->
+<path class="w thick red" d="M430 165 H520"/>
+<rect class="box" x="520" y="150" width="90" height="30" rx="4"/><text x="565" y="170" text-anchor="middle" class="m">E-STOP S1</text>
+<path class="w thick red" d="M610 165 H700"/><circle cx="700" cy="165" r="4" fill="var(--fg)"/>
+<path class="w thick red" d="M700 165 V110 H780"/><path class="w thick red" d="M700 165 V220 H780"/>
+<rect class="box" x="780" y="90" width="110" height="40" rx="4"/><text x="835" y="108" text-anchor="middle" class="m">BTS7960 L</text><text x="835" y="124" text-anchor="middle" class="mut">B+ · B−</text>
+<rect class="box" x="780" y="200" width="110" height="40" rx="4"/><text x="835" y="218" text-anchor="middle" class="m">BTS7960 R</text><text x="835" y="234" text-anchor="middle" class="mut">B+ · B−</text>
+<path class="w" d="M890 110 H940"/><text x="950" y="114" class="mut">2 motors</text><path class="w" d="M890 220 H940"/><text x="950" y="224" class="mut">2 motors</text>
+<!-- divider -->
+<path class="w yel" d="M700 165 V280"/>
+<rect class="box" x="680" y="280" width="40" height="22" rx="3"/><text x="700" y="296" text-anchor="middle" class="m">33k</text>
+<path class="w yel" d="M700 302 V312"/><rect class="box" x="680" y="312" width="40" height="22" rx="3"/><text x="700" y="328" text-anchor="middle" class="m">10k</text>
+<path class="w yel" d="M700 334 V350"/><circle cx="700" cy="350" r="4" fill="var(--hv)"/><path class="w yel" d="M700 350 H760"/><text x="765" y="354" font-weight="600">A0</text>
+<path class="w yel" d="M700 350 V362"/><rect class="box" x="680" y="362" width="40" height="22" rx="3"/><text x="700" y="378" text-anchor="middle" class="m">10k</text>
+<path class="w blk" d="M700 384 V400"/>
+<!-- compute branch -->
+<path class="w red" d="M430 165 V300 H470"/>
+<rect class="box" x="470" y="280" width="40" height="40" rx="4"/><text x="490" y="298" text-anchor="middle" class="m">C1</text><text x="490" y="312" text-anchor="middle" class="m">220µ</text>
+<path class="w red" d="M510 300 H540"/>
+<rect class="box" x="540" y="275" width="110" height="50" rx="4"/><text x="595" y="295" text-anchor="middle" class="m">U2 TPS565201</text><text x="595" y="312" text-anchor="middle" class="mut">5 V · 3 A</text>
+<path class="w red" d="M650 300 H660 V250 H670"/><text x="672" y="236" class="mut">5 V</text>
+<rect class="box" x="300" y="330" width="150" height="70" rx="6"/><text x="375" y="352" text-anchor="middle" font-weight="600">UNO Q</text><text x="375" y="370" text-anchor="middle" class="mut">via Dr.com PD adapter</text><text x="375" y="386" text-anchor="middle" class="mut">→ Belkin hub → OAK-D, mic</text>
+<path class="w red" d="M595 325 V345 H450"/>
+<!-- grounds -->
+<path class="w thick blk" d="M130 205 H300 V400 H700"/><text x="420" y="416" text-anchor="middle" class="mut">star ground at the pack negative · B− of each driver on its own 14 AWG · buck IN− · divider</text>
+<path class="w blk" d="M835 130 V140 H900 V400 H700"/><path class="w blk" d="M835 240 V250 H900"/>
+<path class="w blk" d="M490 320 V400"/><path class="w blk" d="M595 325 V330 H610 V400"/>
+<text x="60" y="30" class="mut">14 AWG: pack, fuse, kill, e-stop, B+/B−, motor leads · 18 AWG: buck in/out · 22–24 AWG: signals</text>
+</svg><figcaption>Fig. 2 — Power single-line. Red is battery positive, grey is ground, yellow is the rail-sense divider added in revision C.</figcaption></figure>
+<div class="grid2"><div>
+<h3>Parts</h3>
+<table><tr><th>Ref</th><th>Part</th><th>Note</th></tr>
+<tr><td>—</td><td>ZOP 3S 2200 mAh 25C LiPo</td><td>25C for low internal resistance, not for current</td></tr>
+<tr><td>F1</td><td>25 A blade fuse</td><td>Before the split, protects both rails</td></tr>
+<tr><td>—</td><td>Kill switch</td><td>Storage and service isolation</td></tr>
+<tr><td>S1</td><td>E-stop, mushroom, one contact block</td><td>Drive branch only; carries 12 V, so no spare contact for a GPIO</td></tr>
+<tr><td>C1</td><td>220 µF 35 V electrolytic</td><td>Across U2 VIN/GND; long battery leads ring the buck input</td></tr>
+<tr><td>U2</td><td>SmartElex TPS565201 buck</td><td>5 V 3 A to the PD adapter and OAK-D</td></tr>
+<tr><td>R1–R3</td><td>33k + 10k / 10k ¼ W</td><td>Rail sense; measured 32.6k, 9.93k, 9.91k</td></tr>
+<tr><td>—</td><td>2 × BTS7960 330 µF caps</td><td>On-board; hold the rail up ~35 s after S1 opens</td></tr>
+</table></div><div>
+<h3>Budget (design figures, to be replaced by the log)</h3>
+<table><tr><th>Load</th><th>Current at 11.1 V</th></tr>
+<tr><td>UNO Q, OAK-D, hub, mic (~12 W via buck)</td><td>~1.2 A</td></tr>
+<tr><td>Motors, driving average</td><td>~2.8 A</td></tr>
+<tr><td>Motors, launch transient (two per side)</td><td>~14 A</td></tr>
+<tr><td>Divider</td><td>0.24 mA</td></tr>
+<tr><td><b>Standing watch</b></td><td><b>~1.2 A → ~1.5 h</b> on 80 % of 2200 mAh</td></tr>
+<tr><td><b>Continuous driving</b></td><td><b>~4 A → ~25 min</b></td></tr>
+</table>
+<div class="note">Stop driving at 10.5 V under load (≈ 11.1 V at rest). The Power tab draws both lines. The runtime figures above are estimates until one full logged run from 12.6 V to 10.5 V is done.</div>
+</div></div>
+</section>
+
+<!-- ===================== SIGNALS ===================== -->
+<section class="tab" id="t-sig">
+<h2>Signals and pins</h2>
+<figure class="fig"><svg viewBox="0 0 1000 360" role="img" aria-label="Signal wiring">
+<rect class="box" x="40" y="40" width="220" height="280" rx="8"/><text x="150" y="66" text-anchor="middle" font-weight="600">UNO Q header</text>
+<g class="m">
+<text x="60" y="100">D3</text><text x="60" y="130">D5</text><text x="60" y="160">D6</text><text x="60" y="190">D9</text><text x="60" y="220">D4</text><text x="60" y="250">3V3</text><text x="60" y="280">A0</text><text x="60" y="310">GND</text></g>
+<text x="130" y="100" class="mut">PWM</text><text x="130" y="130" class="mut">PWM</text><text x="130" y="160" class="mut">PWM</text><text x="130" y="190" class="mut">PWM</text><text x="130" y="220" class="mut">digital out</text><text x="130" y="250" class="mut">supply</text><text x="130" y="280" class="mut">analog in</text><text x="130" y="310" class="mut">—</text>
+<rect class="box" x="520" y="40" width="200" height="120" rx="8"/><text x="620" y="62" text-anchor="middle" font-weight="600">BTS7960 LEFT</text>
+<g class="m"><text x="535" y="90">RPWM</text><text x="535" y="110">LPWM</text><text x="535" y="130">R_EN + L_EN</text><text x="535" y="150">VCC</text></g>
+<rect class="box" x="520" y="200" width="200" height="120" rx="8"/><text x="620" y="222" text-anchor="middle" font-weight="600">BTS7960 RIGHT</text>
+<g class="m"><text x="535" y="250">RPWM</text><text x="535" y="270">LPWM</text><text x="535" y="290">R_EN + L_EN</text><text x="535" y="310">VCC</text></g>
+<path class="w" d="M260 96 H400 V86 H520"/><path class="w" d="M260 126 H410 V106 H520"/>
+<path class="w" d="M260 156 H420 V246 H520"/><path class="w" d="M260 186 H430 V266 H520"/>
+<path class="w" d="M260 216 H440 V126 H520"/><path class="w" d="M440 126 V286 H520"/>
+<path class="w blu" d="M260 246 H460 V146 H520"/><path class="w blu" d="M460 146 V306 H520"/>
+<path class="w yel" d="M260 276 H350 V340 H900 V300"/><text x="640" y="355" text-anchor="middle" class="mut">from the rail-sense divider junction (see Rail sense tab)</text>
+<rect class="box" x="760" y="40" width="200" height="60" rx="8"/><text x="860" y="62" text-anchor="middle" class="mut">GND header pins: not used.</text><text x="860" y="80" text-anchor="middle" class="mut">Signal return is via B− to the star.</text>
+<rect class="box" x="760" y="120" width="200" height="60" rx="8"/><text x="860" y="142" text-anchor="middle" class="mut">R_IS / L_IS: not connected.</text><text x="860" y="160" text-anchor="middle" class="mut">They can exceed 3.3 V.</text>
+<rect class="box" x="760" y="200" width="200" height="80" rx="8"/><text x="860" y="222" text-anchor="middle" class="mut">Free: D2, D7 (HC-SR04),</text><text x="860" y="240" text-anchor="middle" class="mut">D10, D11 (encoder A), D8, D12,</text><text x="860" y="258" text-anchor="middle" class="mut">A1–A5, SDA/SCL (INA219)</text>
+</svg><figcaption>Fig. 3 — Signal wiring. D4 is one wire to the first driver's jumpered enable pair and a short link across to the second. Blue is 3V3, never 5 V.</figcaption></figure>
+<table><tr><th>UNO Q pin</th><th>Goes to</th><th>Direction</th><th>Note</th></tr>
+<tr><td><code>D3</code> / <code>D5</code></td><td>Left RPWM / LPWM</td><td>out, PWM</td><td>No <code>pinMode()</code>. These two jumpers were open on first assembly.</td></tr>
+<tr><td><code>D6</code> / <code>D9</code></td><td>Right RPWM / LPWM</td><td>out, PWM</td><td>No <code>pinMode()</code></td></tr>
+<tr><td><code>D4</code></td><td>R_EN + L_EN, both drivers</td><td>out</td><td><code>EN_ALL</code>; dropped by <code>driveOff()</code></td></tr>
+<tr><td><code>3V3</code></td><td>Both driver VCC</td><td>supply</td><td>Threshold ≈ 0.6 × VCC; at 5 V the 3.3 V logic is marginal</td></tr>
+<tr><td><code>A0</code></td><td>Divider junction</td><td>in, analog</td><td>2.38 V at 12.6 V; 0 V when e-stop pressed</td></tr>
+<tr><td><code>USB-C</code></td><td>Dr.com PD adapter</td><td>power + data</td><td>Adapter also feeds the Belkin hub</td></tr>
+<tr><td><code>D2</code>, <code>D7</code></td><td>reserved HC-SR04</td><td>—</td><td>D2 freed: e-stop no longer uses it</td></tr>
+<tr><td><code>D10</code>, <code>D11</code></td><td>reserved encoder channel A</td><td>in, interrupt</td><td>Check both EXTI lines are distinct; fallback A1</td></tr>
+<tr><td><code>SDA</code>/<code>SCL</code></td><td>reserved INA219</td><td>I²C</td><td>Pull-ups to 3V3</td></tr>
+</table>
+<div class="note bad">Never land a wire from the e-stop's power terminals on a GPIO. The one contact block carries pack voltage. The rail is read only through the divider.</div>
+</section>
+
+<!-- ===================== SENSE ===================== -->
+<section class="tab" id="t-sense">
+<h2>Rail sense: e-stop detection and battery gauge</h2>
+<p>The e-stop opens the motor rail. Reading that rail tells the MCU two things at once: whether the mushroom is pressed, and what the pack voltage is. Three resistors do it.</p>
+<div class="grid2">
+<figure class="fig"><svg viewBox="0 0 420 330" role="img" aria-label="Divider schematic">
+<text x="40" y="30" font-weight="600">S1 output (switched B+)</text><path class="w red" d="M60 40 V70"/>
+<rect class="box" x="40" y="70" width="40" height="40" rx="3"/><text x="60" y="94" text-anchor="middle" class="m">33k</text><text x="95" y="94" class="mut">32.6 k measured</text>
+<path class="w" d="M60 110 V130"/>
+<rect class="box" x="40" y="130" width="40" height="40" rx="3"/><text x="60" y="154" text-anchor="middle" class="m">10k</text><text x="95" y="154" class="mut">9.93 k</text>
+<path class="w" d="M60 170 V200"/><circle cx="60" cy="200" r="4" fill="var(--hv)"/><path class="w yel" d="M60 200 H200"/><text x="208" y="204" font-weight="600">A0</text><text x="208" y="222" class="mut">2.38 V at 12.6 V</text>
+<path class="w" d="M60 200 V230"/>
+<rect class="box" x="40" y="230" width="40" height="40" rx="3"/><text x="60" y="254" text-anchor="middle" class="m">10k</text><text x="95" y="254" class="mut">9.91 k</text>
+<path class="w" d="M60 270 V300"/><path class="w" d="M40 300 H80"/><path class="w" d="M47 306 H73"/><path class="w" d="M54 312 H66"/>
+<path class="w blk" d="M130 200 V230" stroke-dasharray="3 3"/><rect class="box" x="118" y="230" width="24" height="40" rx="3" stroke-dasharray="3 3"/><text x="150" y="254" class="mut">100 nF optional</text><path class="w blk" d="M130 270 V300 H80" stroke-dasharray="3 3"/>
+</svg><figcaption>Fig. 4 — Divider. Ratio 10 / 53 by design; 0.1860 by meter, which the firmware uses.</figcaption></figure>
+<div>
+<h3>Calculation</h3>
+<pre>V_A0 = V_rail × 9.91 / (32.6 + 9.93 + 9.91) = V_rail × 0.1890
+Meter check: 2.37 V / 12.74 V = 0.1860  (−1.6 %, meter tolerance)
+Firmware:   pack_V = counts × 3.3/1023 / 0.1860 = counts × 0.017340
+
+Worst case, 5 % parts, 12.6 V:  2.58 V at A0   (limit 3.3 V)
+Divider current:                0.24 mA, &lt; 2 mW per resistor</pre>
+<table><tr><th>Rail</th><th>A0</th><th>Counts</th><th>Firmware</th></tr>
+<tr><td>12.60 V full</td><td>2.38 V</td><td>738</td><td>released</td></tr>
+<tr><td>11.10 V</td><td>2.09 V</td><td>650</td><td>low warning on dashboard</td></tr>
+<tr><td>10.50 V</td><td>1.98 V</td><td>615</td><td>stop driving</td></tr>
+<tr><td>9.0 V</td><td>1.70 V</td><td>526</td><td>latch clears above this</td></tr>
+<tr><td>&lt; 8.0 V</td><td>&lt; 1.51 V</td><td>&lt; 469</td><td><b>e-stop latched</b></td></tr>
+</table>
+</div></div>
+<h3>Timing</h3>
+<p>The two BTS7960 input capacitors (660 µF total) can only drain through the divider's 53 kΩ once S1 opens: τ ≈ 35 s. Under drive the motors discharge them in milliseconds, so a press while moving is seen at once. A press while idle is seen about 15 s later; a 2 × 680 Ω bleeder across B+/B− (1.36 kΩ, 9 mA, 0.06 W each) would bring that under half a second and is on the roadmap. The 8 V threshold is chosen so the bleeder can be added without a firmware change.</p>
+<div class="note">A blown F1 is not detectable this way — it also takes the compute rail down. The symptom is simply a dark robot. On a USB-powered bench with no pack, A0 reads 0 V and the dashboard shows the hazard band; that is correct, the motors have no power.</div>
+</section>
+
+<!-- ===================== CHASSIS ===================== -->
+<section class="tab" id="t-chassis">
+<h2>Chassis</h2>
+<figure class="fig"><svg viewBox="0 0 1000 770" role="img" aria-label="Chassis plan view">
+<g transform="translate(220,160) scale(1.3)">
+<rect x="0" y="0" width="400" height="20" class="box"/><rect x="0" y="320" width="400" height="20" class="box"/>
+<rect x="50" y="20" width="20" height="300" class="box"/><rect x="330" y="20" width="20" height="300" class="box"/>
+<text x="200" y="14" text-anchor="middle" class="mut" font-size="9">rail 400 mm</text><text x="200" y="334" text-anchor="middle" class="mut" font-size="9">rail 400 mm</text>
+<text x="60" y="170" text-anchor="middle" class="mut" font-size="9" transform="rotate(-90 60 170)">cross 300</text><text x="340" y="170" text-anchor="middle" class="mut" font-size="9" transform="rotate(-90 340 170)">cross 300</text>
+<g fill="var(--sf)" stroke="var(--fg)" stroke-width="1.2">
+<rect x="20" y="-55" width="80" height="50" rx="4"/><rect x="300" y="-55" width="80" height="50" rx="4"/><rect x="20" y="345" width="80" height="50" rx="4"/><rect x="300" y="345" width="80" height="50" rx="4"/></g>
+<g fill="var(--mut)" opacity=".6"><rect x="40" y="-38" width="40" height="17"/><rect x="320" y="-38" width="40" height="17"/><rect x="40" y="362" width="40" height="17"/><rect x="320" y="362" width="40" height="17"/></g>
+<text x="60" y="-62" text-anchor="middle" font-size="9" class="mut">130 mm wheel, motor in rim</text><text x="340" y="-62" text-anchor="middle" font-size="9" class="mut">130 mm wheel, motor in rim</text>
+<rect x="100" y="60" width="90" height="60" rx="3" class="box"/><text x="145" y="94" text-anchor="middle" font-size="10">LiPo</text>
+<rect x="100" y="140" width="90" height="60" rx="3" class="box"/><text x="145" y="165" text-anchor="middle" font-size="10">UNO Q</text><text x="145" y="180" text-anchor="middle" font-size="8" class="mut">+ PD adapter</text>
+<rect x="100" y="220" width="90" height="50" rx="3" class="box"/><text x="145" y="245" text-anchor="middle" font-size="10">TPS565201</text><text x="145" y="258" text-anchor="middle" font-size="8" class="mut">+ divider</text>
+<rect x="210" y="60" width="60" height="60" rx="3" class="box"/><text x="240" y="94" text-anchor="middle" font-size="10">BTS L</text>
+<rect x="210" y="140" width="60" height="60" rx="3" class="box"/><text x="240" y="174" text-anchor="middle" font-size="10">BTS R</text>
+<rect x="210" y="220" width="60" height="50" rx="3" class="box"/><text x="240" y="245" text-anchor="middle" font-size="10">fuse · kill</text>
+<circle cx="290" cy="170" r="16" class="box"/><text x="290" y="174" text-anchor="middle" font-size="9">mast</text>
+<circle cx="300" cy="280" r="14" fill="var(--bad)"/><text x="300" y="284" text-anchor="middle" font-size="8" fill="#fff" font-weight="600">E-STOP</text>
+<path class="w" d="M60 -75 H340" marker-end="url(#a)"/><text x="200" y="-80" text-anchor="middle" font-size="9" class="mut">wheelbase 300</text>
+<path class="w" d="M-20 -30 V370"/><text x="-26" y="170" text-anchor="middle" font-size="9" class="mut" transform="rotate(-90 -26 170)">track ≈ 410</text>
+<text x="200" y="420" text-anchor="middle" font-size="9" class="mut">FRONT ▲ — OAK-D on the 350 mm mast, 90 mm aft of centre, looks over the nose</text>
+</g>
+<text x="20" y="755" class="mut">Not to scale in the deck layout; frame dimensions are. Frame 400 × 340 mm, 2020 V-slot, rails on 320 mm centres, axle height 65 mm, ground clearance 55 mm.</text>
+</svg><figcaption>Fig. 5 — Plan view, revision C. Motors recessed in the wheel rims (no fore-aft stagger), e-stop on the aft deck within reach from behind.</figcaption></figure>
+<table><tr><th>Parameter</th><th>Value</th><th>Why it matters</th></tr>
+<tr><td>Wheelbase ÷ track</td><td>0.73</td><td>Below 1.0 a skid-steer turns cleanly instead of scrubbing</td></tr>
+<tr><td>Wheel circumference</td><td>408 mm</td><td>Encoder scaling; 0.53 m/s at PWM 200</td></tr>
+<tr><td>Thrust at the patches</td><td>~63 N</td><td>About the robot's weight: traction runs out before torque</td></tr>
+<tr><td>Known limitation</td><td>No bearing between rail and hub</td><td>Wheel load cantilevered on the gearbox bushing; acceptable at this duty</td></tr>
+<tr><td>Deferred</td><td>Front rocker pivot</td><td>Drop-in later; frame unchanged forward of the front cross member</td></tr>
+</table>
+</section>
+
+<!-- ===================== FIRMWARE ===================== -->
+<section class="tab" id="t-fw">
+<h2>Firmware and the safety argument</h2>
+<figure class="fig"><svg viewBox="0 0 1000 300" role="img" aria-label="Drive state machine">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--fg)"/></marker></defs>
+<rect class="box" x="40" y="110" width="150" height="60" rx="30"/><text x="115" y="145" text-anchor="middle" font-weight="600">Off · EN low</text>
+<rect class="box" x="300" y="110" width="150" height="60" rx="30"/><text x="375" y="145" text-anchor="middle" font-weight="600">Armed · ramping</text>
+<rect class="box" x="560" y="110" width="150" height="60" rx="30"/><text x="635" y="145" text-anchor="middle" font-weight="600">Driving</text>
+<rect x="800" y="100" width="170" height="80" rx="8" fill="var(--hv)" stroke="#111"/><text x="885" y="134" text-anchor="middle" font-weight="700" fill="#111">E-STOP latched</text><text x="885" y="154" text-anchor="middle" fill="#111">drive() returns false</text>
+<path class="w" d="M190 140 H300" marker-end="url(#a)"/><text x="245" y="130" text-anchor="middle" class="mut">drive(l,r)</text>
+<path class="w" d="M450 140 H560" marker-end="url(#a)"/><text x="505" y="130" text-anchor="middle" class="mut">250 ms ramp</text>
+<path class="w" d="M635 170 V230 H115 V170" marker-end="url(#a)"/><text x="375" y="250" text-anchor="middle" class="mut">no drive() for 400 ms · halt() · browser tab hidden · link lost → driveOff(): PWM 0, EN low</text>
+<path class="w yel" d="M375 110 V60 H885 V100" marker-end="url(#a)"/><path class="w yel" d="M635 110 V60"/><path class="w yel" d="M115 110 V60"/>
+<text x="500" y="50" text-anchor="middle" class="mut">A0 &lt; 8 V for 3 samples (60 ms) → driveOff(), estop = true</text>
+<path class="w yel" d="M885 180 V270 H115 V170" marker-end="url(#a)" stroke-dasharray="6 4"/><text x="500" y="290" text-anchor="middle" class="mut">clear only when rail &gt; 9 V AND no drive() for 1 s — releasing the mushroom while holding forward cannot lurch</text>
+</svg><figcaption>Fig. 6 — Drive states on the STM32. Every arrow back to Off runs without Linux.</figcaption></figure>
+<table><tr><th>Constant</th><th>Value</th><th>Purpose</th></tr>
+<tr><td><code>PWM_MAX</code></td><td>200 / 255</td><td>Speed ceiling; dashboard slider is a percentage of this</td></tr>
+<tr><td><code>DEADMAN_MS</code></td><td>400</td><td>Coast if no <code>drive()</code> arrives</td></tr>
+<tr><td><code>RAMP_MS</code></td><td>250</td><td>Full-scale slew, protects gearboxes</td></tr>
+<tr><td><code>L_INVERT</code> / <code>R_INVERT</code></td><td>true / false</td><td>Set by the 1 Oct phase test; left motors are mirror-mounted</td></tr>
+<tr><td><code>PACK_K</code></td><td>0.017340</td><td>Volts per ADC count, calibrated to the meter</td></tr>
+<tr><td><code>ESTOP_V</code> / <code>CLEAR_V</code></td><td>8.0 / 9.0</td><td>Latch set and clear thresholds, 1 V hysteresis</td></tr>
+<tr><td>A0 sample period</td><td>20 ms</td><td>Smoothed 0.8 / 0.2 for the gauge; raw for the latch</td></tr>
+</table>
+<h3>RouterBridge handlers</h3>
+<pre>Bridge.provide("set_status", set_status);  // LED face state 0–10
+Bridge.provide("drive",      drive);       // signed PWM per side, −200…200
+Bridge.provide("halt",       halt);
+Bridge.provide("pack_v",     pack_v);      // float
+Bridge.provide("estop",      estop_state); // bool</pre>
+<p>Every <code>Bridge.call</code> on the Linux side goes through one lock, because the 250 ms LED loop and the 10 Hz drive loop otherwise interleave frames on the single transport and the symptom is a random hang an hour into a demo.</p>
+<h3>UNO Q quirks that look like wiring faults</h3>
+<ul><li>No <code>pinMode()</code> on PWM pins: it silently disables <code>analogWrite</code>.</li><li>Driver VCC on 3V3, not 5 V.</li><li><code>Bridge.update()</code> does not exist in RouterBridge 0.4.3.</li><li>Reflash from SSH: <code>arduino-app-cli app restart user:asa-mission-control</code> compiles, flashes and restarts in one step.</li></ul>
+</section>
+
+<!-- ===================== SOFTWARE ===================== -->
+<section class="tab" id="t-sw">
+<h2>Software and dashboard</h2>
+<h3>Dashboard layout (October 2026)</h3>
+<figure class="fig"><svg viewBox="0 0 1000 420" role="img" aria-label="Dashboard wireframe">
+<rect class="box" x="20" y="20" width="960" height="40" rx="6"/><text x="40" y="45" font-weight="600">ASA  Mission Control · unit ASA-01</text><text x="960" y="45" text-anchor="end" class="mut">● vision  ● speaker  ● power log</text>
+<rect x="20" y="66" width="960" height="26" fill="var(--hv)"/><text x="500" y="84" text-anchor="middle" fill="#111" font-weight="600">E-STOP PRESSED · motors disabled   (hazard band, only while pressed)</text>
+<rect x="20" y="100" width="400" height="150" rx="8" fill="var(--ok)"/><text x="40" y="135" fill="#06180d" font-size="26" font-weight="700">All clear</text><text x="40" y="158" fill="#06180d">No one in view</text><text x="40" y="235" fill="#06180d" class="m">0 people   3 violations   8.1 fps</text>
+<rect class="box" x="436" y="100" width="544" height="150" rx="8"/><text x="708" y="180" text-anchor="middle" class="mut">OAK-D live MJPEG</text>
+<g><rect class="box" x="20" y="262" width="228" height="56" rx="6"/><text x="32" y="280" class="mut">Battery pack</text><text x="32" y="304" font-weight="600">12.31 V  ▬▬▬▬▬▬▬▬▬▭▭</text>
+<rect class="box" x="264" y="262" width="228" height="56" rx="6"/><text x="276" y="280" class="mut">Estimated time left</text><text x="276" y="304" font-weight="600">55 min to 10.5 V</text>
+<rect class="box" x="508" y="262" width="228" height="56" rx="6"/><text x="520" y="280" class="mut">Drive</text><text x="520" y="304" font-weight="600">Disarmed</text>
+<rect class="box" x="752" y="262" width="228" height="56" rx="6"/><text x="764" y="280" class="mut">Site language</text><text x="764" y="304" font-weight="600">தமிழ் · speaker online</text></g>
+<path class="w blk" d="M20 345 H980"/><text x="40" y="338" font-weight="600">Live</text><path class="w yel" d="M36 345 H70" stroke-width="2"/><text x="100" y="338" class="mut">Drive</text><text x="160" y="338" class="mut">Power</text><text x="220" y="338" class="mut">Evidence 9</text>
+<rect class="box" x="20" y="360" width="580" height="50" rx="6"/><text x="32" y="380" class="mut">Event log</text><rect class="box" x="616" y="360" width="364" height="50" rx="6"/><text x="628" y="380" class="mut">Voice alerts: language, volume (min 30 %), test</text>
+</svg><figcaption>Fig. 7 — Above the fold is what a supervisor needs at a glance; the tabs hold operation (Drive), diagnostics (Power) and the audit trail (Evidence).</figcaption></figure>
+<table><tr><th>Tab</th><th>Contents</th><th>Data source</th><th>Poll</th></tr>
+<tr><td>Hero / tiles</td><td>Site status, camera, pack V, time left, drive state, language</td><td>:8090 <code>/state</code>, <code>/asa/power</code>, <code>/asa/status</code></td><td>0.5 s / 0.5 s / 3 s</td></tr>
+<tr><td>Live</td><td>Event log, voice controls</td><td><code>/asa/lang</code>, <code>/asa/volume</code>, <code>/asa/test</code></td><td>on change</td></tr>
+<tr><td>Drive</td><td>Arm switch, speed, hold-to-drive pad, STOP AND DISARM, L/R PWM, V under load</td><td><code>/asa/drive</code>, <code>/asa/halt</code></td><td>10 Hz while held</td></tr>
+<tr><td>Power</td><td>1/4/24 h voltage chart with 11.1 and 10.5 V lines, 10-min slope, session low, CSV</td><td>:8096 <code>/log</code></td><td>30 s</td></tr>
+<tr><td>Evidence</td><td>Gallery with chips, filmstrip viewer, stats, audit CSV</td><td>:8090 <code>/evidence</code></td><td>3 s</td></tr>
+</table>
+<h3>Repository</h3>
+<pre>AI-Site-Agent/
+├── services/   asa_vision.py  asa_voice.py  asa_journal.py  asa-powerlog.py  asa_bt_speaker.sh  phrases_i18n.json
+├── app/        main.py  sketch/sketch.ino  index.html        ← the App Lab app (board: ~/ArduinoApps/asa-mission-control)
+├── systemd/    asa-vision  asa-voice (+cpu.conf)  asa-journal  asa-powerlog
+├── scripts/    asa-stamp.sh
+├── CHANGELOG.md  VERSION  README.md</pre>
+<p>Working copy on the board: <code>~/asa-repo</code>. Deploy is copy-in, <code>git add -A &amp;&amp; git commit &amp;&amp; git push</code>, then <code>./scripts/asa-stamp.sh</code> so the journal records which version each boot ran.</p>
+</section>
+
+<!-- ===================== BUILD ===================== -->
+<section class="tab" id="t-build">
+<h2>Build order and tests</h2>
+<p>The rule throughout: prove each piece with nothing downstream able to move, then add the next.</p>
+<table><tr><th>Step</th><th>Do</th><th>Pass</th><th>Status</th></tr>
+<tr><td>1</td><td>Grounds: star at the pack negative; B− of each driver on its own 14 AWG</td><td>Continuity from each B− to XT60 −</td><td>Done</td></tr>
+<tr><td>2</td><td>Logic wiring, no battery, UNO Q on USB; <code>curl /asa/drive?l=80&amp;r=0</code></td><td><code>{"ok":true}</code>, nothing moves</td><td>Done</td></tr>
+<tr><td>3</td><td>Buck to 5 V with C1 fitted, no load; then PD adapter, then OAK-D</td><td>4.9–5.1 V no load; UNO Q 5 V pin ≥ 4.75 V with vision running</td><td>Done</td></tr>
+<tr><td>4</td><td>Fused, kill-switched, e-stop-switched motor rail; smoke test</td><td>B+ ≈ pack V with S1 released, 0 V pressed</td><td>Done</td></tr>
+<tr><td>5</td><td>Arm on blocks, hold forward</td><td>All four wheels turn</td><td>Done after replacing D3/D5 jumpers</td></tr>
+<tr><td>6</td><td>Phase test; set invert flags</td><td>Forward drives forward, left turns left</td><td>Done: <code>L_INVERT=true</code></td></tr>
+<tr><td>7</td><td>Divider: measure parts, solder, meter junction before connecting A0</td><td>2.0–2.4 V released, ~0 V pressed, never &gt; 3.0 V</td><td>Done: 2.37 V / 12.74 V</td></tr>
+<tr><td>8</td><td>Firmware latch and <code>/asa/power</code>; compare dashboard to meter</td><td>Within 0.1 V; e-stop while driving → stop, <code>estop:true</code>, refuses drive, clears after release + 1 s</td><td>Done, exact match</td></tr>
+<tr><td>9</td><td>Power log service, reboot</td><td>Rows in <code>/log</code> after 35 s; survives <code>sudo reboot</code></td><td>Installing</td></tr>
+<tr><td>10</td><td>First floor drive: clear area, low speed, e-stop in hand, 1 s taps</td><td>Stops within 400 ms of release</td><td>Next</td></tr>
+<tr><td>11</td><td>Runtime run: full pack → 10.5 V with the log on; charger mAh ÷ hours</td><td>Measured average current replaces the estimates</td><td>Next</td></tr>
+</table>
+<h3>Troubleshooting</h3>
+<table><tr><th>Symptom</th><th>Likely cause</th><th>Check</th></tr>
+<tr><td>Panel shows l/r but one side is still</td><td>Open jumper, EN link, VCC, or a bad module</td><td>Swap that side's PWM pair onto the other driver: if the fault follows the pins it is the wire or the board; if it stays it is the driver or motor leads</td></tr>
+<tr><td>Both sides still</td><td>E-stop pressed, no B+, EN low, driver VCC missing</td><td>S1, fuse, D4, 3V3 at driver VCC</td></tr>
+<tr><td>Hazard band on with the e-stop released</td><td>No pack (USB bench), rail still above 8 V not reached, divider open</td><td>Meter A0 to GND: 2.0–2.4 V expected</td></tr>
+<tr><td>Dashboard voltage ≠ meter</td><td><code>PACK_K</code></td><td>new K = 0.017340 × meter ÷ dashboard</td></tr>
+<tr><td>Forward turns the robot</td><td>One invert flag</td><td>Phase test, flip one flag, <code>app restart</code></td></tr>
+<tr><td>UNO Q resets when motors start</td><td>Ground path or sagging 5 V</td><td>Star ground, C1, 5 V pin under load</td></tr>
+<tr><td>Drive stops answering after an MCU reset</td><td>Bridge hang (known)</td><td>Restart the app; client watchdog on the roadmap</td></tr>
+</table>
+</section>
+
+<!-- ===================== RECORDS ===================== -->
+<section class="tab" id="t-rec">
+<h2>Records</h2>
+<table><tr><th>Measurement</th><th>Expected</th><th>Measured</th><th>Date</th></tr>
+<tr><td>Divider R1 / R2 / R3</td><td>33k / 10k / 10k ±5 %</td><td>32.6k / 9.93k / 9.91k</td><td>1 Oct</td></tr>
+<tr><td>Pack, off charger</td><td>12.4–12.6 V</td><td>12.74 V (4.25 V/cell, settles)</td><td>1 Oct</td></tr>
+<tr><td>Junction, released / pressed</td><td>2.0–2.4 V / ~0</td><td>2.37 V / 0.04 V (slow decay, see Rail sense)</td><td>1 Oct</td></tr>
+<tr><td>Dashboard vs meter</td><td>±0.1 V</td><td>equal to 0.01 V</td><td>1 Oct</td></tr>
+<tr><td>Phase test</td><td>—</td><td>Left inverted; <code>L_INVERT=true</code></td><td>1 Oct</td></tr>
+<tr><td>Deadman stop on release</td><td>≤ 400 ms</td><td>—</td><td></td></tr>
+<tr><td>U2 output no load / under vision load</td><td>4.9–5.1 V / ≥ 4.75 V at UNO Q 5 V pin</td><td>—</td><td></td></tr>
+<tr><td>Average current, standing / driving</td><td>~1.2 A / ~4 A</td><td>— (from the runtime run)</td><td></td></tr>
+<tr><td>Runtime to 10.5 V</td><td>~1.5 h standing</td><td>—</td><td></td></tr>
+<tr><td>Encoder counts per wheel rev</td><td>measure</td><td>—</td><td></td></tr>
+<tr><td>Robot mass</td><td>weigh</td><td>—</td><td></td></tr>
+</table>
+<h2>Roadmap</h2>
+<table><tr><th>Item</th><th>Why</th><th>Pins / parts</th></tr>
+<tr><td>Runtime run and logged consumption</td><td>Replace design estimates with measurements</td><td>none</td></tr>
+<tr><td>2 × 680 Ω bleeder across B+/B−</td><td>Idle e-stop press seen in &lt; 0.5 s</td><td>¼ W parts</td></tr>
+<tr><td>Encoder channel A, one per side</td><td>Closed-loop speed, straight-line trim, odometry</td><td>D10, D11 (fallback A1)</td></tr>
+<tr><td>INA219 on the compute branch</td><td>Logic current and energy on the Power tab</td><td>SDA/SCL, 3V3</td></tr>
+<tr><td>HC-SR04 reflex on the MCU</td><td>Obstacle stop independent of vision</td><td>D2, D7 (echo via divider)</td></tr>
+<tr><td>RouterBridge client watchdog</td><td>Recover from a surprise MCU reset without a restart</td><td>software</td></tr>
+<tr><td>FOMO scrap classifier</td><td>Material / waste tracking (Tier 2)</td><td>cores 0–1</td></tr>
+<tr><td>Front rocker pivot, swarm, BIM compare</td><td>Tier 3</td><td>—</td></tr>
+</table>
+<p class="k">Document revision C · supersedes the 16 Sep dossier and the 22 Sep power build note · Karthikeyan Sundararaman, CS Research Labs, Chennai.</p>
+</section>
+</main>
+<script>
+const B=[...document.querySelectorAll('#tabs button')];
+function go(t){B.forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));document.querySelectorAll('section.tab').forEach(s=>s.classList.toggle('on',s.id==='t-'+t));try{localStorage.setItem('asa.dossier',t)}catch(e){}}
+B.forEach(b=>b.onclick=()=>go(b.dataset.t));
+try{const t=localStorage.getItem('asa.dossier');if(t&&document.getElementById('t-'+t))go(t)}catch(e){}
+</script>
+</body></html>

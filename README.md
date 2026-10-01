@@ -51,7 +51,14 @@ the machine's state from across a room without looking at a screen.
 trail, downloadable from the dashboard.
 
 **Moves.** Four-wheel skid steer on a 2020 aluminium frame, commanded through
-Arduino App Lab's RouterBridge.
+Arduino App Lab's RouterBridge from a hold-to-drive pad on the dashboard. First
+drive under battery power on 1 October 2026; all four directions verified.
+
+**Knows when it has been stopped.** The MCU senses the e-stop-switched motor rail
+through a resistor divider. Press the mushroom and the dashboard shows a hazard
+band within a second, the drive pad disarms, and the firmware refuses drive
+commands until the button is released. The same reading gives live pack voltage
+and a battery-life estimate.
 
 ---
 
@@ -72,14 +79,16 @@ robot's ability to stop depends on Linux being healthy.
 executes both without Linux in the loop.
 
 ```
-OAK-D ──USB3──► QRB2210 (vision, voice, dashboard)
+OAK-D ──USB3──► QRB2210 (vision, voice, dashboard, power log)
                    │
                    ├─ WebUI :7000  ──► phone / laptop
                    ├─ Piper TTS ──► Bluetooth speaker
+                   ├─ asa-powerlog :8096 ──► voltage CSV + chart
                    └─ RouterBridge
                           │
                    STM32U585 ──► LED face
-                          └────► 2× BTS7960 ──► 4× motor
+                          ├────► 2× BTS7960 ──► 4× motor
+                          ◄──── A0: motor-rail voltage (e-stop + pack V)
 ```
 
 ### Motor control and the safety argument
@@ -95,10 +104,18 @@ that call and the wheels:
 - **Shared hardware enable.** Both drivers' `R_EN`/`L_EN` tie to one pin. Dropping
   it disables both H-bridges regardless of what state the PWM registers are in.
 
+- **E-stop latch.** A0 samples the switched motor rail every 20 ms. Three
+  readings below 8 V latch `estop`, which calls `driveOff()` and makes `drive()`
+  return false. The latch clears only when the rail is back above 9 V *and* no
+  drive command has arrived for a second — so releasing the mushroom while an
+  operator is still holding "forward" cannot make the robot lurch.
+
 The deliberate choice worth naming: the emergency stop cuts *drive power only*, not
 the compute branch. Hit it and the wheels die while ASA stays online and can report
 that it was stopped. Killing everything would look identical to a crash and tell
-the operator nothing.
+the operator nothing. The e-stop on this build has only one contact block, and it
+carries 12 V — so instead of a second contact to a GPIO, the firmware reads the
+rail itself, which also happens to be the battery gauge.
 
 ---
 
@@ -131,12 +148,29 @@ is no separate service to forget to enable.
 
 ### WebUI Brick — the dashboard
 
-The Mission Control dashboard on port 7000 is a WebUI Brick. It serves the live
-MJPEG view, event log, evidence gallery with filter chips and filmstrip viewer,
-CSV export and the stats panel.
+The Mission Control dashboard on port 7000 is a WebUI Brick, a single
+self-contained HTML file with no build step. The current design (October 2026)
+puts what a site supervisor needs at a glance above the fold and everything else
+behind four tabs:
+
+- **Hero.** Site status as a full-colour block — green *All clear*, pulsing red
+  *Violation* with reason and distance — beside the live OAK-D view. Three live
+  figures under it: people in view, violations this session, AI frames/s.
+- **Tile strip.** Pack voltage with a charge bar, estimated time left, drive
+  state, site language and speaker. The three header pills (vision, speaker,
+  power log) go green or red as each service answers.
+- **E-stop band.** A black-and-yellow hazard stripe across the top of the page
+  while the mushroom is pressed. The drive pad disarms with it.
+- **Live** tab: event log and voice controls (language, volume, test alert).
+- **Drive** tab: arm switch, speed slider, hold-to-drive pad, STOP AND DISARM,
+  and left/right PWM plus pack voltage under load.
+- **Power** tab: pack voltage over 1 / 4 / 24 hours with the 11.1 V and 10.5 V
+  lines drawn in, drop over the last ten minutes, session low, time-to-10.5 V
+  estimate, and a CSV download.
+- **Evidence** tab: the gallery with filter chips, filmstrip viewer and audit CSV.
 
 What made it more than a static page is `expose_api`, which registers a FastAPI
-route and maps function arguments straight to query parameters. ASA exposes six:
+route and maps function arguments straight to query parameters. ASA exposes seven:
 
 ```python
 ui.expose_api("GET", "/asa/status", api_status)
@@ -145,6 +179,7 @@ ui.expose_api("GET", "/asa/volume", api_volume)
 ui.expose_api("GET", "/asa/test",   api_test)
 ui.expose_api("GET", "/asa/drive",  api_drive)
 ui.expose_api("GET", "/asa/halt",   api_halt)
+ui.expose_api("GET", "/asa/power",  api_power)   # pack_v, estop
 ```
 
 This gave a clean security boundary for free. The voice service on :8091 and the
@@ -175,6 +210,8 @@ RouterBridge is how the Linux side reaches the MCU. The sketch registers handler
 Bridge.provide("set_status", set_status);
 Bridge.provide("drive", drive);
 Bridge.provide("halt", halt);
+Bridge.provide("pack_v", pack_v);      // float, calibrated
+Bridge.provide("estop", estop_state);  // bool, MCU-side latch
 ```
 
 and Python calls them:
@@ -188,7 +225,7 @@ The split matters. Anything that must happen on time — the 50 Hz matrix refres
 the 400 ms motor deadman, the output ramp — lives on the STM32 and keeps running
 whether or not Linux is healthy. Anything that needs a filesystem, a network stack
 or a neural network lives on the QRB2210. RouterBridge is the only seam, and it is
-three function calls wide.
+five function calls wide.
 
 One practical note: `Bridge.call` is invoked from two threads in ASA — the main
 loop pushing LED state every 250 ms, and the dashboard's API thread pushing drive
@@ -229,7 +266,7 @@ vision service so it never contends with the two live nets on the OAK-D.
 |---|---|
 | 2020 aluminium extrusion, 400 × 340 mm frame | — |
 | Johnson 12 V 100 RPM geared motor | 4 |
-| OE-28 encoder | 4 (fitted) |
+| OE-28 encoder | 4 (fitted, not yet wired) |
 | 130 mm off-road wheel, dished rim | 4 |
 | BTS7960 / IBT-2 driver | 2 |
 | Camera mast + OAK-D mount | 1 |
@@ -238,10 +275,11 @@ vision service so it never contends with the two live nets on the OAK-D.
 
 | Item | Note |
 |---|---|
-| ZOP 3S 2200 mAh 25C LiPo | Drive rail |
-| XL4015 buck, 5 A / 75 W, digital display | 5 V compute rail |
-| 20 A blade fuse + kill switch | Battery protection |
-| E-stop | Drive branch only |
+| ZOP 3S 2200 mAh 25C LiPo, XT60 | Single pack feeds both rails; 25C chosen for low internal resistance, not peak current |
+| SmartElex TPS565201 buck, 5 V 3 A | Compute rail: UNO Q, OAK-D, hub, mic. 220 µF electrolytic on VIN against input ringing |
+| Blade fuse + kill switch | Battery protection, before the rail split |
+| E-stop, single contact block | Drive branch only |
+| 33 kΩ + 10 kΩ / 10 kΩ, ¼ W | Rail-sense divider into A0 (measured 32.6 k, 9.93 k, 9.91 k) |
 
 ---
 
@@ -339,16 +377,45 @@ upgrade rather than a redesign.
 | D9 | — | `LPWM` |
 | D4 | `R_EN` + `L_EN` | `R_EN` + `L_EN` |
 | 3V3 | `VCC` | `VCC` |
-| GND | `GND` | `GND` |
+| GND | — | — |
+
+Driver signal ground returns through `B−` to the star point; the header `GND`
+pins are left unconnected so the drivers do not create a second ground path.
+`R_IS`/`L_IS` are unconnected — they can exceed 3.3 V.
+
+Firmware direction flags after the phase test: `L_INVERT=true`, `R_INVERT=false`.
+
+### Motor-rail sense (e-stop detection and battery gauge)
+
+```
+E-stop output (switched B+) ──[33 kΩ]──[10 kΩ]──┬──► A0
+                                                [10 kΩ]
+                                                  │
+                                                 GND
+```
+
+| Rail | A0 | ADC (10-bit, 3.3 V) | Meaning |
+|---|---|---|---|
+| 12.6 V (full) | 2.38 V | 738 | released |
+| 10.5 V | 1.98 V | 615 | stop driving |
+| < 8 V | < 1.5 V | < 470 | **e-stop pressed** |
+
+Ratio by measured parts 0.1890; by meter 2.37 V / 12.74 V = 0.1860, which is
+what the firmware uses (`PACK_K = 0.017340` V per count). Dashboard voltage
+matched a multimeter to the hundredth after calibration. Worst case with 5 %
+parts is 2.6 V at A0, safely under the 3.3 V pin limit. A blown main fuse is
+*not* detected this way — it takes the compute rail down too, so the robot
+simply goes dark.
 
 Reserved: D0/D1 UART, D2/D7 for an HC-SR04, D10/D11 for encoder channel A.
 
 ### Power
 
 ```
-LiPo + ──► 20 A fuse ──► kill switch ──┬──► E-stop ──► both B+
-                                       └──► XL4015 IN+ ──► 5 V ──► UNO Q
-LiPo − ──► star point ──► both B−, buck IN−, all logic GND
+LiPo + ──► fuse ──► kill switch ──┬──► E-stop ──┬──► both B+
+                                  │             └──► 33k+10k/10k ──► A0
+                                  └──► TPS565201 5 V ──► UNO Q (USB-C via PD adapter), OAK-D, hub
+LiPo − ──► star point ──► both B−, buck IN−, divider GND
 ```
 
 Both drivers' `B−` run to a single star point at the battery negative in 14 AWG.
@@ -367,6 +434,18 @@ silently. The sketch writes D3/D5/D6/D9 with `analogWrite` directly and only cal
 `pinMode` on the digital enable pin. Correct wiring looks completely dead if you
 get this wrong.
 
+**Test every Dupont jumper for continuity before blaming firmware.** On first
+arming only the right side ran. The sketch was clean; swapping D6/D9 onto the
+left driver made the left side run, which proved both drivers and all four
+motors. The D3 and D5 jumpers both had open crimps. Two bad wires out of a bag
+look exactly like a timer conflict.
+
+**Driver capacitors keep the rail alive after the e-stop opens.** Two 330 µF
+caps discharging through a 53 kΩ divider is a 35 s time constant, so an idle
+robot reports the press about 15 s late. Under drive the motors drain it in
+milliseconds, which is the case that matters. A 2 × 680 Ω bleeder across B+/B−
+(≈9 mA) brings idle detection under half a second; it is on the list.
+
 ---
 
 ## Repository
@@ -380,10 +459,13 @@ AI-Site-Agent/
 │   ├── asa_voice.py          Piper TTS, 4 languages, phrase cache      (:8091)
 │   ├── asa_bt_speaker.sh     Bluetooth reconnect by device name
 │   └── phrases_i18n.json     Alert text — edit text only, auto-regenerates
+│   ├── asa_journal.py        boot / power-loss / uptime record, web view  (:8095)
+│   └── asa-powerlog.py       pack voltage sampler, CSV + /log API          (:8096)
 ├── app/                      the App Lab app
 │   ├── main.py               dashboard API, KWS callback, LED state machine
-│   ├── sketch/sketch.ino     LED face + drive(l,r) + deadman
-│   └── assets/index.html     WebUI Brick dashboard
+│   ├── sketch/sketch.ino     LED face + drive(l,r) + deadman + e-stop latch
+│   └── index.html            WebUI Brick dashboard (tabbed, Oct 2026 design)
+├── scripts/asa-stamp.sh      writes the running version into the journal
 └── systemd/                  unit files incl. the voice CPU-affinity drop-in
 ```
 
@@ -515,10 +597,23 @@ This compiles and flashes the STM32 sketch and starts the Python side. Expect:
 
 Dashboard at `http://<unoq>:7000`.
 
-### 6. Verify the whole chain
+### 6. Power log
+
+```bash
+sudo install -m 755 services/asa-powerlog.py /usr/local/bin/asa-powerlog.py
+sudo mkdir -p /var/lib/asa && sudo chown arduino /var/lib/asa
+sudo cp systemd/asa-powerlog.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now asa-powerlog
+```
+
+It samples `/asa/power` every 30 s into `/var/lib/asa/power.csv` and serves
+`/log?hours=N` and `/power.csv` on :8096 for the dashboard's Power tab.
+
+### 7. Verify the whole chain
 
 ```bash
 curl -s 127.0.0.1:7000/asa/status; echo
+curl -s 127.0.0.1:7000/asa/power; echo
 curl -s "127.0.0.1:7000/asa/drive?l=80&r=0"; echo
 curl -s 127.0.0.1:7000/asa/halt; echo
 ```
@@ -527,6 +622,7 @@ Expected:
 
 ```
 {"lang":"ta","available":["en","fr","hi","ta"],"voice_ready":true,...}
+{"ok":true,"pack_v":12.10,"estop":false}
 {"ok":true,"l":80,"r":0}
 {"ok":true}
 ```
@@ -536,13 +632,16 @@ That last pair proves the full path — HTTP route, RouterBridge RPC, MCU handle
 **Run it with the LiPo disconnected first.** You get the same `{"ok":true}` with
 nothing able to move, which proves the signal chain before any current is involved.
 Then chassis on blocks, battery in, and repeat to confirm direction per side.
+Press the e-stop while holding forward: the wheels stop, `/asa/power` reports
+`"estop":true`, and the pad refuses to drive until you release and let go for
+a second.
 
-### 7. Reboot proof
+### 8. Reboot proof
 
 ```bash
 sudo reboot
 # wait, then
-systemctl is-enabled asa-vision asa-voice
+systemctl is-enabled asa-vision asa-voice asa-journal asa-powerlog
 curl -s <unoq>:7000/asa/status; echo
 ```
 
@@ -591,12 +690,17 @@ a misplaced element before the next pour rather than after.
 
 ## What's next
 
+- Runtime measurement: one full run from a charged pack to 10.5 V with the
+  power log recording, then the charger's returned mAh ÷ hours gives true
+  average draw. The design estimate is ~1.2 A standing watch, ~4 A driving.
+- 2 × 680 Ω bleeder on the motor rail so an idle e-stop press is seen in under
+  a second.
 - Encoder readout. OE-28s are fitted on all four motors; channel A on one encoder
   per side reads back to D10/D11 for closed-loop speed and odometry.
 - HC-SR04 on D2/D7 as a low-latency obstacle reflex on the MCU, independent of
   vision.
-- Current sensing from the BTS7960 `R_IS`/`L_IS` pins for stall detection, which
-  needs no extra hardware.
+- INA219 on the compute branch for logic current, alongside the rail voltage.
+- RouterBridge client-side watchdog for a surprise MCU reset.
 - FOMO scrap classification to completion.
 
 ---
@@ -611,6 +715,9 @@ a misplaced element before the next pour rather than after.
 - `No-Hat.mp4` — violation detection and spoken alert
 - `HeyKeyword.mp4` — "hey arduino" keyword spotting → spoken status report
 - `faceDisplay.mp4` — LED matrix face animation states
+- `[FILL]` — first drive on battery, 1 Oct 2026
+- `[FILL]` — e-stop pressed while driving; dashboard hazard band
+- `[FILL]` — dashboard screenshot, Power tab after the runtime run
 
 ---
 
