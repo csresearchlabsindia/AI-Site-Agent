@@ -1,275 +1,353 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ASA Mission Control</title><style>
-:root{--bg:#0f1115;--card:#171a21;--mut:#8a93a6;--ok:#1f9d55;--bad:#d64545;--wait:#5b6475;--info:#2f6fd6;--amb:#c98a1b;--line:#232734}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#e8ebf1;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-a{color:inherit}header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line)}
-h1{font-size:18px;margin:0}h3{margin:0}.sub{color:var(--mut);font-size:12px}
-main{display:grid;grid-template-columns:2fr 1fr;gap:16px;padding:16px 20px}@media(max-width:900px){main{grid-template-columns:1fr}}
-.card{background:var(--card);border-radius:12px;padding:14px}.wide{grid-column:1/-1}
-#banner{font-size:26px;font-weight:800;padding:18px;border-radius:12px;text-align:center}
-.CLEAR{background:var(--ok)}.VIOLATION{background:var(--bad);animation:p 1s infinite}.OFFLINE,.STARTING{background:var(--wait)}
-@keyframes p{50%{filter:brightness(1.3)}}
-#cam{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9;object-fit:contain;margin-top:12px;display:block}
-.stats{display:grid;gap:10px;grid-template-columns:repeat(3,1fr);margin-top:12px}.stats4{display:grid;gap:10px;grid-template-columns:repeat(4,1fr);margin-bottom:14px}
-@media(max-width:700px){.stats4{grid-template-columns:repeat(2,1fr)}}
-.stat{background:#10131a;border-radius:10px;padding:10px;text-align:center}.stat b{display:block;font-size:22px}.stat span{color:var(--mut);font-size:12px}
-#log{list-style:none;margin:10px 0 0;padding:0;max-height:380px;overflow:auto;font-size:13px}#log li{padding:8px 4px;border-bottom:1px solid var(--line)}
-.t{color:var(--mut);margin-right:8px}.arch{color:var(--mut);font-size:12px;line-height:1.6;margin-top:12px}
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASA Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#15181c;--sf:#1e2227;--sf2:#262b31;--ln:#30363d;--fg:#eef0f2;--mut:#9aa3ad;--dim:#6b747e;
+ --hv:#f5c518;--hvfg:#1a1600;--bad:#e5484d;--ok:#35b36a;--info:#4f8ff7;--r:10px}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select,input{font:inherit}button{cursor:pointer}a{color:inherit}
+:focus-visible{outline:2px solid var(--hv);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* header */
+header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
+.mark{display:flex;align-items:baseline;gap:10px}.mark b{font-size:22px;letter-spacing:-.02em}.mark span{color:var(--mut);font-size:13px}
+.spacer{flex:1}
+.links{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid var(--ln);border-radius:99px;color:var(--mut);background:var(--sf)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block}
+.pill.on{color:var(--fg)}.pill.on i{background:var(--ok)}.pill.off i{background:var(--bad)}
+
+/* e-stop band */
+#estop{display:none;padding:14px 20px;text-align:center;font-weight:700;font-size:18px;letter-spacing:.02em;color:var(--hvfg);
+ background:repeating-linear-gradient(135deg,var(--hv) 0 28px,#111 28px 56px)}
+#estop span{background:var(--hv);padding:6px 16px;border-radius:6px;box-shadow:0 0 0 3px #111}
+body.estop #estop{display:block}
+
+/* hero: status + camera */
+.hero{display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1.3fr);gap:16px;padding:16px 20px}
+@media(max-width:900px){.hero{grid-template-columns:1fr}}
+.status{border-radius:var(--r);padding:22px 24px;display:flex;flex-direction:column;justify-content:space-between;min-height:220px;transition:background .3s}
+.status .big{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.05}
+.status .why{font-size:15px;margin-top:8px;opacity:.9}
+.status .row{display:flex;gap:28px;margin-top:22px;flex-wrap:wrap}
+.status .row div{font-size:13px;opacity:.85}.status .row b{display:block;font-size:26px;font-weight:600;line-height:1.1}
+.status.CLEAR{background:var(--ok);color:#06180d}.status.VIOLATION{background:var(--bad);color:#fff;animation:pulse 1.2s infinite}
+.status.OFFLINE,.status.STARTING,.status.CONNECTING{background:var(--sf2);color:var(--mut)}
+@keyframes pulse{50%{filter:brightness(1.18)}}
+@media(prefers-reduced-motion:reduce){.status.VIOLATION{animation:none}}
+.cam{background:#000;border-radius:var(--r);aspect-ratio:16/9;overflow:hidden;position:relative}
+.cam img{width:100%;height:100%;object-fit:contain;display:block}
+.cam .tag{position:absolute;left:12px;top:10px;font-size:12px;color:#fff;background:rgba(0,0,0,.55);padding:3px 9px;border-radius:6px}
+
+/* strip */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 20px 16px}
+@media(max-width:700px){.strip{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--sf);border:1px solid var(--ln);border-radius:var(--r);padding:12px 14px}
+.tile small{color:var(--mut);font-size:12.5px}.tile b{display:block;font-size:24px;font-weight:600;line-height:1.2;margin-top:2px}
+.tile .sub{font-size:12px;color:var(--mut);margin-top:4px;min-height:16px}
+.bar{height:5px;background:var(--ln);border-radius:3px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .4s}
+.tile.warn b{color:var(--hv)}.tile.warn .bar i{background:var(--hv)}.tile.bad b{color:var(--bad)}.tile.bad .bar i{background:var(--bad)}
+
+/* tabs */
+nav{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--ln)}
+nav button{background:none;border:0;color:var(--mut);padding:12px 14px;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+nav button[aria-selected=true]{color:var(--fg);border-color:var(--hv)}
+nav button .n{display:inline-block;margin-left:6px;font-size:12px;color:var(--dim)}
+.panel{display:none;padding:18px 20px 40px}.panel.on{display:block}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:var(--r);padding:16px}
+h2{font-size:15px;font-weight:600;margin:0 0 12px}
+.two{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}@media(max-width:900px){.two{grid-template-columns:1fr}}
+.hint{color:var(--mut);font-size:13px}
+.btn{background:var(--sf2);border:1px solid var(--ln);color:var(--fg);padding:7px 12px;border-radius:8px;font-size:13px;text-decoration:none;display:inline-block}
+.btn:hover{border-color:var(--mut)}
+
+/* live */
+#log{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto;font-size:13.5px}
+#log li{padding:8px 2px;border-bottom:1px solid var(--ln);display:flex;gap:10px}#log li time{color:var(--mut);flex:none}
+#log:empty::before{content:"Nothing yet. Events appear here as the status changes.";color:var(--mut)}
+.voice{display:grid;gap:12px}
+.voice label{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+.voice select{background:var(--sf2);color:var(--fg);border:1px solid var(--ln);border-radius:8px;padding:6px 10px}
+.voice input[type=range]{accent-color:var(--hv);width:150px}
+
+/* drive */
+.drive{max-width:560px;margin:0 auto}
+.armrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.sw{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500}
+.sw input{appearance:none;width:46px;height:26px;border-radius:13px;background:var(--ln);position:relative;transition:background .2s;margin:0}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
+.sw input:checked{background:var(--hv)}.sw input:checked::after{left:23px}
+.speed{display:flex;align-items:center;gap:12px;margin-bottom:14px}.speed input{flex:1;accent-color:var(--hv)}.speed span{min-width:90px;text-align:right;color:var(--mut);font-size:13px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{height:84px;border-radius:12px;border:1px solid var(--ln);background:var(--sf2);color:var(--fg);font-size:26px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.pad button:disabled{opacity:.3;cursor:not-allowed}.pad button.hot{background:var(--hv);color:var(--hvfg);border-color:var(--hv)}
+.pad .stop{grid-column:1/-1;height:56px;font-size:15px;font-weight:700;letter-spacing:.04em;background:#2a1719;border-color:#5b2326;color:var(--bad)}
+.pad .stop:active{background:var(--bad);color:#fff}
+.dvst{margin-top:12px;font-size:13px;color:var(--mut);min-height:18px}.dvst.err{color:var(--bad)}
+.tele{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.tele div{background:var(--bg);border-radius:8px;padding:10px;text-align:center}.tele small{color:var(--mut);font-size:12px;display:block}.tele b{font-size:20px;font-weight:600;white-space:nowrap}@media(max-width:420px){.tele b{font-size:16px}}
+body.estop .pad button{opacity:.3}
+
+/* power */
+.pstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}@media(max-width:700px){.pstats{grid-template-columns:repeat(2,1fr)}}
+.pstats div{background:var(--bg);border-radius:8px;padding:10px 12px}.pstats small{color:var(--mut);font-size:12px;display:block}.pstats b{font-size:22px;font-weight:600}
+canvas{width:100%;height:260px;display:block}
+.range{display:flex;gap:6px;margin-bottom:10px}.range button{background:none;border:1px solid var(--ln);color:var(--mut);border-radius:99px;padding:4px 12px;font-size:12.5px}.range button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+/* evidence */
 .evhead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);background:#10131a;color:#cfd5e1;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer}
-.chip.on{background:#e8ebf1;color:#0f1115;border-color:#e8ebf1;font-weight:700}
-.btn{background:#232838;color:#e8ebf1;text-decoration:none;padding:8px 12px;border-radius:8px;font-size:13px;border:none;cursor:pointer}.btn:hover{background:#2d3448}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-height:560px;overflow:auto;padding-right:4px}
-.ev{background:#10131a;border-radius:10px;overflow:hidden;font-size:12px;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .15s}
-.ev:hover{border-color:#3a4256;transform:translateY(-2px)}.ev.nopic{cursor:default;transform:none}
-.ev img,.ev .ph{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#0b0d12}
-.ev .ph{display:flex;align-items:center;justify-content:center;color:var(--mut)}.ev .m{padding:8px;line-height:1.5}
-.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-weight:700;font-size:11px;color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--ln);background:var(--bg);color:var(--mut);padding:5px 12px;border-radius:99px;font-size:12.5px}
+.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;max-height:600px;overflow:auto}
+.ev{background:var(--bg);border-radius:8px;overflow:hidden;font-size:12.5px;cursor:pointer;border:2px solid transparent}
+.ev:hover{border-color:var(--mut)}.ev.nopic{cursor:default}
+.ev img,.ev .ph{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#0b0d12}.ev .ph{display:flex;align-items:center;justify-content:center;color:var(--dim)}
+.ev .m{padding:8px 10px;line-height:1.5}.ev .m .hint{display:block}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-weight:600;font-size:11px;color:#fff}
 #lb{position:fixed;inset:0;background:rgba(5,6,9,.95);display:none;z-index:50;flex-direction:column}#lb.open{display:flex}
 #lbTop{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;gap:12px}
 #lbStage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;padding:0 70px}
-#lbImg{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6);user-select:none}
-.nav{position:absolute;top:50%;transform:translateY(-50%);width:50px;height:50px;border-radius:50%;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:26px;cursor:pointer}
-.nav:hover{background:rgba(255,255,255,.25)}.nav:disabled{opacity:.2;cursor:default}#prev{left:12px}#next{right:12px}
+#lbImg{max-width:100%;max-height:100%;border-radius:8px;user-select:none}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:50px;height:50px;border-radius:50%;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:26px}
+.nav:disabled{opacity:.2}#prev{left:12px}#next{right:12px}
 #lbMeta{padding:10px 18px 4px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:14px}
 #strip{display:flex;gap:6px;overflow-x:auto;padding:8px 18px 16px}
-#strip img{height:56px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;opacity:.45;cursor:pointer;border:2px solid transparent;flex:none}
-#strip img.cur{opacity:1;border-color:#e8ebf1}kbd{background:#232838;border-radius:4px;padding:1px 6px;font-size:11px}
-</style><style>
-#vctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
-#vSpk{width:10px;height:10px;border-radius:50%;background:#d9534f;display:inline-block}
-#vSpk.on{background:#3fb950}
-#vctl select{background:transparent;color:inherit;border:1px solid rgba(127,127,127,.45);border-radius:6px;padding:3px 6px}
-#vctl select option{color:#000}
-#vVol{width:110px;vertical-align:middle}
-</style>
-</head><body>
-<header><div><h1>ASA · Mission Control</h1><div class="sub">AI-Site-Agent · Arduino UNO Q + OAK-D · Unit ASA-01</div></div><div id="vctl"><span id="vSpk"></span><span id="vSpkT">speaker…</span><select id="vLang" title="Site language"><option value="en">English</option><option value="ta">தமிழ்</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select><label title="Speaker volume (minimum 30% - a safety robot cannot be muted)">Vol <input type="range" id="vVol" min="30" max="100" step="5" value="70"> <b id="vVolN">70%</b></label><button class="btn" id="vTest">▶ Test</button><span class="sub" id="vWarm"></span></div><div class="sub" id="conn">connecting…</div></header>
-<main>
-<section class="card"><div id="banner" class="OFFLINE">CONNECTING…</div><img id="cam" alt="live view">
-<div class="stats"><div class="stat"><b id="fps">–</b><span>AI FPS (Myriad X)</span></div><div class="stat"><b id="ppl">–</b><span>People in view</span></div><div class="stat"><b id="ev">–</b><span>Violations (session)</span></div></div></section>
-<section class="card"><h3>Event log</h3><ul id="log"></ul>
-<div class="arch">OAK-D (Myriad X) detects people + hard hats in 3D → UNO Q Linux applies the on-head rule, speaks alerts, records evidence and serves this page → Bridge → STM32 shows status on the LED matrix.</div></section>
-<section class="card wide"><div class="evhead"><h3>Compliance evidence</h3><div class="chips" id="chips"></div><a id="csv" class="btn">⬇ Audit CSV</a></div>
-<div class="stats4"><div class="stat"><b id="eC">–</b><span>Compliance checks passed</span></div><div class="stat"><b id="eV">–</b><span>Violations recorded</span></div><div class="stat"><b id="eR">–</b><span>Resolved on the spot</span></div><div class="stat"><b id="eT">–</b><span>Avg time to comply</span></div></div>
-<div id="gallery" class="grid"></div>
-<div class="sub" style="margin-top:10px">Click a snapshot to open the viewer · <kbd>←</kbd> <kbd>→</kbd> browse · <kbd>Esc</kbd> close · stored on the robot for 14 days</div></section>
-</main>
-<div id="lb"><div id="lbTop"><div><b>Evidence viewer</b> <span class="sub" id="lbCount"></span></div>
-<div style="display:flex;gap:8px"><a id="lbDl" class="btn" target="_blank">↗ Full size</a><button class="btn" id="lbClose">✕ Close</button></div></div>
-<div id="lbStage"><button class="nav" id="prev" title="Newer (←)">‹</button><img id="lbImg" alt="evidence"><button class="nav" id="next" title="Older (→)">›</button></div>
+#strip img{height:56px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;opacity:.45;cursor:pointer;border:2px solid transparent;flex:none}#strip img.cur{opacity:1;border-color:#fff}
+kbd{background:var(--sf2);border-radius:4px;padding:1px 6px;font-size:11px}
+</style></head><body>
+
+<header>
+ <div class="mark"><b>ASA</b><span>Mission Control · unit ASA-01</span></div>
+ <div class="spacer"></div>
+ <div class="links">
+  <span class="pill" id="pVis"><i></i>vision</span>
+  <span class="pill" id="pSpk"><i></i>speaker</span>
+  <span class="pill" id="pLog"><i></i>power log</span>
+  <span class="pill" id="pDemo" style="display:none;border-color:var(--hv);color:var(--hv)">demo data</span>
+ </div>
+</header>
+
+<div id="estop"><span>E-STOP PRESSED · motors disabled · release the button, then keep hands off the pad for 1 s</span></div>
+
+<section class="hero">
+ <div class="status CONNECTING" id="status">
+  <div><div class="big" id="sBig">Connecting…</div><div class="why" id="sWhy">Looking for the vision service</div></div>
+  <div class="row"><div><b class="num" id="ppl">–</b>people in view</div><div><b class="num" id="ev">–</b>violations this session</div><div><b class="num" id="fps">–</b>AI frames/s</div></div>
+ </div>
+ <div class="cam"><img id="cam" alt="Live camera"><span class="tag">OAK-D live</span></div>
+</section>
+
+<section class="strip">
+ <div class="tile" id="tPack"><small>Battery pack</small><b><span class="num" id="pv">--.--</span> V</b><div class="bar"><i id="pb"></i></div><div class="sub" id="ps">connecting…</div></div>
+ <div class="tile" id="tRun"><small>Estimated time left</small><b id="runLeft">–</b><div class="sub" id="runSub">needs 10 min of log</div></div>
+ <div class="tile" id="tDrv"><small>Drive</small><b id="drvTile">Disarmed</b><div class="sub" id="drvSub">arm it on the Drive tab</div></div>
+ <div class="tile" id="tLed"><small>Site language</small><b id="langTile">–</b><div class="sub" id="langSub"></div></div>
+</section>
+
+<nav role="tablist">
+ <button role="tab" aria-selected="true" data-p="live">Live</button>
+ <button role="tab" data-p="drive">Drive</button>
+ <button role="tab" data-p="power">Power</button>
+ <button role="tab" data-p="evid">Evidence<span class="n" id="evN"></span></button>
+</nav>
+
+<section class="panel on" id="p-live"><div class="two">
+ <div class="card"><h2>Event log</h2><ul id="log"></ul></div>
+ <div class="card"><h2>Voice alerts</h2><div class="voice">
+  <label>Language <select id="vLang"><option value="en">English</option><option value="ta">தமிழ்</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select></label>
+  <label>Volume <span><input type="range" id="vVol" min="30" max="100" step="5" value="70"> <b class="num" id="vVolN">70%</b></span></label>
+  <div><button class="btn" id="vTest">Play test alert</button> <span class="hint" id="vWarm"></span></div>
+  <p class="hint" style="margin:4px 0 0">Minimum volume is 30%: a safety robot cannot be muted. OAK-D detects people and hard hats in 3D, the UNO Q applies the on-head rule, speaks alerts and records evidence; the STM32 shows status on the LED matrix.</p>
+ </div></div>
+</div></section>
+
+<section class="panel" id="p-drive"><div class="card drive">
+ <div class="armrow"><label class="sw"><input type="checkbox" id="dvArm"> Armed</label><span class="hint">Auto-disarms after 2 min idle</span></div>
+ <div class="speed"><input type="range" id="dvSpd" min="15" max="100" value="35"><span class="num" id="dvSpdN">35% · PWM 70</span></div>
+ <div class="pad">
+  <span></span><button data-l="1" data-r="1" disabled aria-label="Forward">▲</button><span></span>
+  <button data-l="-1" data-r="1" disabled aria-label="Turn left">◀</button><button data-l="-1" data-r="-1" disabled aria-label="Reverse">▼</button><button data-l="1" data-r="-1" disabled aria-label="Turn right">▶</button>
+  <button class="stop" id="dvStop">STOP AND DISARM</button>
+ </div>
+ <div class="dvst" id="dvSt">Disarmed. Hold a direction to drive; release to stop.</div>
+ <div class="tele"><div><small>Left PWM</small><b class="num" id="tL">0</b></div><div><small>Right PWM</small><b class="num" id="tR">0</b></div><div><small>Pack under load</small><b class="num" id="tV">–</b></div></div>
+</div></section>
+
+<section class="panel" id="p-power"><div class="card">
+ <div class="evhead"><h2 style="margin:0">Pack voltage</h2><div class="range" id="rng"><button data-h="1">1 h</button><button data-h="4" class="on">4 h</button><button data-h="24">24 h</button></div></div>
+ <div class="pstats">
+  <div><small>Now</small><b class="num" id="qNow">–</b></div>
+  <div><small>Drop over last 10 min</small><b class="num" id="qSlope">–</b></div>
+  <div><small>Session low</small><b class="num" id="qMin">–</b></div>
+  <div><small>Logged</small><b class="num" id="qSpan">–</b></div>
+ </div>
+ <canvas id="chart" height="260"></canvas>
+ <p class="hint" style="margin:10px 0 0">Logged every 30 s by the power-log service. Stop driving at 10.5 V under load. The estimate uses the drop over the last 10 minutes, so it is only meaningful while the robot is doing what it will keep doing. <a class="btn" id="csvP" href="#" style="margin-left:8px">Download CSV</a></p>
+</div></section>
+
+<section class="panel" id="p-evid"><div class="card">
+ <div class="evhead"><div class="chips" id="chips"></div><a id="csv" class="btn">Download audit CSV</a></div>
+ <div class="pstats">
+  <div><small>Compliance checks passed</small><b class="num" id="eC">–</b></div><div><small>Violations recorded</small><b class="num" id="eV">–</b></div>
+  <div><small>Resolved on the spot</small><b class="num" id="eR">–</b></div><div><small>Average time to comply</small><b class="num" id="eT">–</b></div>
+ </div>
+ <div id="gallery" class="grid"></div>
+ <p class="hint" style="margin:10px 0 0">Click a snapshot to open it · <kbd>←</kbd> <kbd>→</kbd> browse · <kbd>Esc</kbd> close · kept on the robot for 14 days</p>
+</div></section>
+
+<div id="lb"><div id="lbTop"><div><b>Evidence</b> <span class="hint" id="lbCount"></span></div>
+<div style="display:flex;gap:8px"><a id="lbDl" class="btn" target="_blank">Open full size</a><button class="btn" id="lbClose">Close</button></div></div>
+<div id="lbStage"><button class="nav" id="prev" aria-label="Newer">‹</button><img id="lbImg" alt="evidence"><button class="nav" id="next" aria-label="Older">›</button></div>
 <div id="lbMeta"></div><div id="strip"></div></div>
+
 <script>
-const $=id=>document.getElementById(id), API=`http://${location.hostname}:8090`;
-(function(){function camOn(){$('cam').src=API+'/video?t='+Date.now();}$('cam').onerror=function(){setTimeout(camOn,2000);};camOn();})(); $('csv').href=API+'/evidence.csv'; let prev=null;
-function add(t){const li=document.createElement('li');li.innerHTML=`<span class="t">${new Date().toLocaleTimeString()}</span>${t}`;$('log').prepend(li);while($('log').children.length>50)$('log').lastChild.remove();}
-async function tick(){try{const s=await(await fetch(API+'/state',{cache:'no-store'})).json(),v=s.violation||{};
-$('conn').textContent='vision service: online';$('banner').className=s.status;
-$('banner').textContent=s.status==='VIOLATION'?`⚠ ${(v.reason||'').toUpperCase()} — ${((v.z||0)/1000).toFixed(1)} m`:s.status==='CLEAR'?'✓ ALL CLEAR':s.status;
-$('fps').textContent=s.fps;$('ppl').textContent=(s.persons||[]).length;$('ev').textContent=s.events;
-if(prev&&s.status!==prev)add(s.status==='VIOLATION'?`🔴 Violation #${s.events}: ${v.reason} at ${((v.z||0)/1000).toFixed(1)} m`:`🟢 Clear (${s.clear_reason||'-'})`);prev=s.status;
-}catch(e){$('banner').className='OFFLINE';$('banner').textContent='VISION OFFLINE';$('conn').textContent='vision service: offline';if(prev!=='OFFLINE')add('⚪ Vision service offline');prev='OFFLINE';}}
-const TAG={SYSTEM:'var(--wait)',COMPLIANT:'var(--ok)',VIOLATION:'var(--bad)',RESOLVED:'var(--info)',UNRESOLVED:'var(--amb)'};
-const TYPES=['ALL','VIOLATION','RESOLVED','COMPLIANT','UNRESOLVED','SYSTEM'];
-let EV=[],filt='ALL',sig='',view=[],cur=-1;
-const fmt=ts=>ts?new Date(ts).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'';
+const $=id=>document.getElementById(id);
+const DEMO=/[?&]demo=1/.test(location.search)||/claude|localhost$/.test(location.hostname)||location.protocol==='file:';
+const H=location.hostname||'127.0.0.1', API=`http://${H}:8090`, PLOG=`http://${H}:8096`;
+if(DEMO){$('pDemo').style.display='';}
+
+/* ---------- demo data ---------- */
+const demo=(()=>{let t0=Date.now(),v=12.31,ev=0,phase=0;const list=[];
+ const mk=(type,ago,extra)=>({type,ts:new Date(Date.now()-ago*1000).toISOString(),reason:type==='COMPLIANT'?'hardhat on head':'hardhat not on head',z_mm:2300,event:type==='SYSTEM'?null:++ev,...extra});
+ for(let i=0;i<9;i++)list.push(mk(['RESOLVED','COMPLIANT','VIOLATION','COMPLIANT','UNRESOLVED','COMPLIANT','RESOLVED','COMPLIANT','SYSTEM'][i],i*700,{response_s:[6.2,0,0,0,41,0,3.8,0,0][i]}));
+ return{
+  state(){const k=Math.floor((Date.now()-t0)/9000)%3;phase=k;return k===1?{status:'VIOLATION',fps:7.8,persons:[{status:'UNSAFE'}],events:3,violation:{reason:'hardhat not on head',z_mm:2300,z:2300}}:{status:'CLEAR',fps:8.1,persons:k===2?[{status:'SAFE'}]:[],events:3,clear_reason:'hardhat on head'}},
+  evidence(){return list},
+  voice(){return{speaker:true,lang:'en',volume:.7,voice_ready:true,cached:12,total:12}},
+  power(){v-=0.00015;return{ok:true,pack_v:+v.toFixed(2),estop:/estop=1/.test(location.search)}},
+  log(h){const n=Math.min(h*120,480),out=[];for(let i=n;i>=0;i--){const s=Date.now()/1000-i*30;out.push([s,+(12.55-(n-i)*0.00055-(i%40<12?0.18:0)).toFixed(2),0])}return{ok:true,rows:out}}
+ }})();
+async function getJSON(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(r.status);return r.json();}
+
+/* ---------- tabs ---------- */
+const tabs=[...document.querySelectorAll('nav [role=tab]')];
+function showTab(p){tabs.forEach(b=>b.setAttribute('aria-selected',b.dataset.p===p));document.querySelectorAll('.panel').forEach(s=>s.classList.toggle('on',s.id==='p-'+p));if(p==='power')drawChart();localStorage.setItem('asa.tab',p);}
+tabs.forEach(b=>b.onclick=()=>showTab(b.dataset.p));
+try{const t=localStorage.getItem('asa.tab');if(t&&document.getElementById('p-'+t))showTab(t);}catch(e){}
+
+/* ---------- live ---------- */
+(function camOn(){if(DEMO){$('cam').src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="#111"/><text x="80" y="48" font-size="7" fill="#666" text-anchor="middle" font-family="sans-serif">camera feed appears here on the robot</text></svg>');return;}$('cam').src=API+'/video?t='+Date.now();$('cam').onerror=()=>setTimeout(camOn,2000);})();
+$('csv').href=API+'/evidence.csv';
+let prev=null;
+function add(t){const li=document.createElement('li');li.innerHTML=`<time>${new Date().toLocaleTimeString()}</time><span>${t}</span>`;$('log').prepend(li);while($('log').children.length>60)$('log').lastChild.remove();}
+function setStatus(cls,big,why){$('status').className='status '+cls;$('sBig').textContent=big;$('sWhy').textContent=why;}
+async function tick(){try{const s=DEMO?demo.state():await getJSON(API+'/state'),v=s.violation||{};
+ $('pVis').className='pill on';
+ if(s.status==='VIOLATION')setStatus('VIOLATION','Violation',`${v.reason||''} · ${((v.z||v.z_mm||0)/1000).toFixed(1)} m from the robot`);
+ else if(s.status==='CLEAR')setStatus('CLEAR','All clear',(s.persons||[]).length?'Everyone in view is compliant':'No one in view');
+ else setStatus(s.status,s.status,'');
+ $('fps').textContent=s.fps;$('ppl').textContent=(s.persons||[]).length;$('ev').textContent=s.events;
+ if(prev&&s.status!==prev)add(s.status==='VIOLATION'?`🔴 Violation #${s.events}: ${v.reason} at ${((v.z||v.z_mm||0)/1000).toFixed(1)} m`:`🟢 Clear (${s.clear_reason||'-'})`);prev=s.status;
+}catch(e){setStatus('OFFLINE','Vision offline','The detection service is not answering on port 8090');$('pVis').className='pill off';if(prev!=='OFFLINE')add('⚪ Vision service offline');prev='OFFLINE';}}
+setInterval(tick,500);tick();
+
+/* ---------- voice ---------- */
+(()=>{const NAMES={en:'English',ta:'தமிழ்',hi:'हिन्दी',fr:'Français'};let P=null,drag=false,sw=0;
+ async function api(q){if(DEMO)return demo.voice();for(const c of (P!==null?[P]:['','/api'])){try{const r=await fetch(c+'/asa/'+q,{cache:'no-store'});if(r.ok){P=c;return await r.json()}}catch(e){}}throw new Error('api')}
+ function paint(s){if(s.error){if(Date.now()-sw<40000){$('vWarm').textContent='switching language…';return}$('pSpk').className='pill off';$('langSub').textContent='voice service offline';return}
+  $('pSpk').className=s.speaker?'pill on':'pill off';
+  if(document.activeElement!==$('vLang'))$('vLang').value=s.lang;
+  if(!drag&&s.volume!=null){const v=Math.round(s.volume*100);$('vVol').value=v;$('vVolN').textContent=v+'%'}
+  const L=NAMES[s.lang]||s.lang;$('langTile').textContent=L;$('langSub').textContent=s.speaker?'speaker online':'speaker offline';
+  $('vWarm').textContent=!s.voice_ready?`loading ${L} voice…`:(s.cached<s.total?`preparing ${L} phrases ${s.cached}/${s.total}…`:'')}
+ async function poll(){try{paint(await api('status'))}catch(e){paint({error:1})}}
+ $('vLang').onchange=async e=>{sw=Date.now();$('vWarm').textContent='switching…';try{await api('lang?value='+e.target.value)}catch(_){};poll()};
+ $('vVol').oninput=e=>{drag=true;$('vVolN').textContent=e.target.value+'%'};
+ $('vVol').onchange=async e=>{try{await api('volume?value='+(e.target.value/100).toFixed(2))}catch(_){};drag=false;poll()};
+ $('vTest').onclick=async()=>{try{await api('test')}catch(_){}};
+ poll();setInterval(poll,3000)})();
+
+/* ---------- drive ---------- */
+(()=>{const arm=$('dvArm'),spd=$('dvSpd'),spdN=$('dvSpdN'),st=$('dvSt'),btns=[...document.querySelectorAll('.pad button[data-l]')];let timer=null,held=null,idle=null;
+ const pwm=()=>Math.round(200*spd.value/100);
+ function show(t,e){st.textContent=t;st.className=e?'dvst err':'dvst';}
+ spd.oninput=()=>{spdN.textContent=spd.value+'% · PWM '+pwm();};
+ async function send(p){if(DEMO){const m=/l=(-?\d+)&r=(-?\d+)/.exec(p);return m?{ok:1,l:+m[1],r:+m[2]}:{ok:1};}const r=await fetch(p,{cache:'no-store'});return r.json();}
+ function tele(l,r){$('tL').textContent=l;$('tR').textContent=r;$('drvTile').textContent=(l||r)?'Moving':(arm.checked?'Armed':'Disarmed');}
+ function halt(){if(timer){clearInterval(timer);timer=null;}if(held){held.classList.remove('hot');held=null;}
+  send('/asa/halt').then(()=>{show('Stopped.');tele(0,0);}).catch(()=>show('Halt failed. Use the e-stop.',1));}
+ function tick(l,r){const s=pwm();send('/asa/drive?l='+(l*s)+'&r='+(r*s)).then(j=>{if(j&&j.ok===false||j&&j.error)throw 0;show('Driving');tele(j.l,j.r);}).catch(()=>{show('Link lost. Halting.',1);halt();});}
+ function start(b,ev){ev.preventDefault();if(!arm.checked||timer||document.body.classList.contains('estop'))return;held=b;b.classList.add('hot');const l=+b.dataset.l,r=+b.dataset.r;tick(l,r);timer=setInterval(()=>tick(l,r),100);clearTimeout(idle);}
+ btns.forEach(b=>{b.addEventListener('pointerdown',e=>start(b,e));['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();if(held===b)halt();}));b.addEventListener('contextmenu',e=>e.preventDefault());});
+ $('dvStop').onclick=()=>{arm.checked=false;setArm();halt();};
+ window.addEventListener('blur',()=>{if(timer)halt();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&timer)halt();});
+ function setArm(){btns.forEach(b=>b.disabled=!arm.checked);clearTimeout(idle);
+  if(arm.checked){show('Armed. Hold a direction to drive; release to stop.');$('drvTile').textContent='Armed';$('drvSub').textContent='hold a direction on the Drive tab';idle=setTimeout(()=>{arm.checked=false;setArm();},120000);}
+  else{$('drvTile').textContent='Disarmed';$('drvSub').textContent='arm it on the Drive tab';if(timer)halt();else show('Disarmed. Hold a direction to drive; release to stop.');}}
+ arm.addEventListener('change',setArm);
+ window.asaDisarm=()=>{if(arm.checked){arm.checked=false;setArm();}};
+})();
+
+/* ---------- power tile ---------- */
+const PCT=[[12.6,100],[12.45,90],[12.33,80],[12.25,70],[12.07,60],[11.95,50],[11.86,40],[11.74,30],[11.62,20],[11.45,10],[11.1,0]];
+function pct(v){if(v>=PCT[0][0])return 100;for(let i=1;i<PCT.length;i++){if(v>=PCT[i][0]){const[v1,p1]=PCT[i-1],[v0,p0]=PCT[i];return Math.round(p0+(v-v0)*(p1-p0)/(v1-v0));}}return 0;}
+let lastV=null;
+async function power(){try{const d=DEMO?demo.power():await getJSON('/asa/power');if(!d.ok)throw new Error(d.err||'bridge');
+ const v=d.pack_v,p=pct(v);document.body.classList.toggle('estop',d.estop);if(d.estop)window.asaDisarm();
+ const t=$('tPack');t.className='tile'+(d.estop||v<10.5?' bad':v<11.1?' warn':'');
+ if(d.estop){$('pv').textContent='--.--';$('pb').style.width='0';$('ps').textContent='e-stop pressed';}
+ else{$('pv').textContent=v.toFixed(2);$('pb').style.width=p+'%';$('ps').textContent=v<10.5?'Low. Stop driving and charge.':`about ${p}% (accurate at rest)`;lastV=v;$('tV').textContent=v.toFixed(2)+' V';}
+}catch(e){$('ps').textContent='no reading: '+e.message;}}
+setInterval(power,500);power();
+
+/* ---------- power log + chart ---------- */
+let rows=[],hours=4;
+$('csvP').href=PLOG+'/power.csv';
+document.querySelectorAll('#rng button').forEach(b=>b.onclick=()=>{hours=+b.dataset.h;document.querySelectorAll('#rng button').forEach(x=>x.classList.toggle('on',x===b));fetchLog();});
+async function fetchLog(){try{const d=DEMO?demo.log(hours):await getJSON(PLOG+'/log?hours='+hours);rows=d.rows||[];$('pLog').className='pill on';stats();drawChart();}
+ catch(e){$('pLog').className='pill off';$('runSub').textContent='power-log service not reachable';}}
+function stats(){if(!rows.length){$('qSpan').textContent='0 min';return;}
+ const now=rows[rows.length-1][0],cur=rows[rows.length-1][1];$('qNow').textContent=cur.toFixed(2)+' V';
+ const live=rows.filter(r=>r[1]>8),min=live.length?Math.min(...live.map(r=>r[1])):null;$('qMin').textContent=min!=null?min.toFixed(2)+' V':'–';
+ const span=now-rows[0][0];$('qSpan').textContent=span<3600?Math.round(span/60)+' min':(span/3600).toFixed(1)+' h';
+ const w=rows.filter(r=>r[0]>now-600&&r[1]>8);
+ if(w.length<10){$('qSlope').textContent='–';$('runLeft').textContent='–';$('runSub').textContent='needs 10 min of log';return;}
+ const n=w.length,sx=w.reduce((a,r)=>a+r[0],0),sy=w.reduce((a,r)=>a+r[1],0),sxx=w.reduce((a,r)=>a+r[0]*r[0],0),sxy=w.reduce((a,r)=>a+r[0]*r[1],0);
+ const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx);const mvmin=-slope*60*1000;$('qSlope').textContent=(mvmin>=0?'':'+')+Math.abs(mvmin).toFixed(0)+' mV/min';
+ if(slope>=-1e-6){$('runLeft').textContent='Stable';$('runSub').textContent='no drop in the last 10 min';return;}
+ const mins=(cur-10.5)/(-slope)/60;$('runLeft').textContent=mins<1?'<1 min':mins<90?Math.round(mins)+' min':(mins/60).toFixed(1)+' h';$('runSub').textContent='to 10.5 V at the current rate';}
+function drawChart(){const c=$('chart');if(!c.offsetWidth)return;const dpr=devicePixelRatio||1;c.width=c.offsetWidth*dpr;c.height=260*dpr;const g=c.getContext('2d');g.scale(dpr,dpr);const W=c.offsetWidth,Hh=260,L=44,R=10,T=12,B=26;
+ g.clearRect(0,0,W,Hh);const cs=getComputedStyle(document.body);const mut=cs.getPropertyValue('--mut'),ln=cs.getPropertyValue('--ln');
+ if(!rows.length){g.fillStyle=mut;g.font='13px IBM Plex Sans,system-ui';g.fillText('No readings yet. The log fills in as the robot runs.',L,Hh/2);return;}
+ const live=rows.filter(r=>r[1]>8);const t1=rows[rows.length-1][0],t0=t1-hours*3600;let vmin=Math.min(10.3,...live.map(r=>r[1])),vmax=Math.max(12.7,...live.map(r=>r[1]));vmin=Math.floor(vmin*2)/2;vmax=Math.ceil(vmax*2)/2;
+ const X=t=>L+(t-t0)/(t1-t0)*(W-L-R),Y=v=>T+(vmax-v)/(vmax-vmin)*(Hh-T-B);
+ g.strokeStyle=ln;g.fillStyle=mut;g.font='11px IBM Plex Sans,system-ui';g.lineWidth=1;
+ for(let v=vmin;v<=vmax+1e-9;v+=0.5){g.beginPath();g.moveTo(L,Y(v));g.lineTo(W-R,Y(v));g.stroke();g.fillText(v.toFixed(1),4,Y(v)+4);}
+ const ticks=hours<=1?6:hours<=4?4:6;for(let i=0;i<=ticks;i++){const t=t0+(t1-t0)*i/ticks;const d=new Date(t*1000);g.fillText(d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),X(t)-16,Hh-8);}
+ const band=(v,col)=>{g.strokeStyle=col;g.setLineDash([4,4]);g.beginPath();g.moveTo(L,Y(v));g.lineTo(W-R,Y(v));g.stroke();g.setLineDash([]);};
+ band(11.1,cs.getPropertyValue('--hv'));band(10.5,cs.getPropertyValue('--bad'));
+ g.strokeStyle=cs.getPropertyValue('--fg');g.lineWidth=1.8;g.beginPath();let pen=false;
+ for(const r of rows){if(r[0]<t0)continue;if(r[1]<=8){pen=false;continue;}const x=X(r[0]),y=Y(r[1]);pen?g.lineTo(x,y):g.moveTo(x,y);pen=true;}g.stroke();
+ g.fillStyle=cs.getPropertyValue('--bad');for(const r of rows){if(r[0]>=t0&&r[2])g.fillRect(X(r[0])-1,T,2,Hh-T-B);}}
+window.addEventListener('resize',drawChart);fetchLog();setInterval(fetchLog,30000);
+
+/* ---------- evidence ---------- */
+const TAG={SYSTEM:'var(--dim)',COMPLIANT:'var(--ok)',VIOLATION:'var(--bad)',RESOLVED:'var(--info)',UNRESOLVED:'var(--hv)'};
+const TYPES=['ALL','VIOLATION','RESOLVED','COMPLIANT','UNRESOLVED','SYSTEM'];let EV=[],filt='ALL',sig='',view=[],cur=-1;
+const fmt=ts=>ts?new Date(ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'';
 const img=r=>`${API}/evidence/${r.image}`;
 const detail=r=>r.type==='RESOLVED'?`complied in ${r.response_s} s`:r.type==='UNRESOLVED'?`left zone after ${r.response_s} s`:(r.z_mm?`at ${(r.z_mm/1000).toFixed(1)} m`:'');
 const list=()=>filt==='ALL'?EV:EV.filter(r=>r.type===filt);
-function renderChips(){$('chips').innerHTML=TYPES.map(t=>{const n=t==='ALL'?EV.length:EV.filter(r=>r.type===t).length;
-return `<button class="chip ${t===filt?'on':''}" data-t="${t}">${t==='ALL'?'All':t[0]+t.slice(1).toLowerCase()} (${n})</button>`;}).join('');}
+function renderChips(){$('chips').innerHTML=TYPES.map(t=>{const n=t==='ALL'?EV.length:EV.filter(r=>r.type===t).length;return `<button class="chip ${t===filt?'on':''}" data-t="${t}">${t==='ALL'?'All':t[0]+t.slice(1).toLowerCase()} (${n})</button>`;}).join('');$('evN').textContent=EV.length||'';}
 function renderGallery(){$('gallery').innerHTML=list().map(r=>{const pic=r.image?`<img loading="lazy" src="${img(r)}" alt="">`:`<div class="ph">log only</div>`;
-return `<div class="ev ${r.image?'':'nopic'}" ${r.image?`data-img="${r.image}"`:''}>${pic}<div class="m"><span class="tag" style="background:${TAG[r.type]||'var(--wait)'}">${r.type}</span>${r.event?` <span class="sub">#${r.event}</span>`:''}<div>${fmt(r.ts)}</div><div class="sub">${r.reason||''} · ${detail(r)}</div></div></div>`;}).join('')||'<div class="sub">No evidence yet.</div>';}
-function stats(){const n=t=>EV.filter(r=>r.type===t).length,V=n('VIOLATION'),R=EV.filter(r=>r.type==='RESOLVED');
-$('eC').textContent=n('COMPLIANT');$('eV').textContent=V;$('eR').textContent=V?Math.min(100,Math.round(100*R.length/V))+'%':'–';
-$('eT').textContent=R.length?(R.reduce((a,r)=>a+(r.response_s||0),0)/R.length).toFixed(1)+' s':'–';}
-async function evid(){try{const L=await(await fetch(API+'/evidence',{cache:'no-store'})).json();const s=L.length+'|'+((L[0]||{}).ts||'');
-if(s===sig)return;sig=s;EV=L;stats();renderChips();renderGallery();if($('lb').classList.contains('open'))syncView();}catch(e){}}
+ return `<div class="ev ${r.image?'':'nopic'}" ${r.image?`data-img="${r.image}"`:''}>${pic}<div class="m"><span class="tag" style="background:${TAG[r.type]||'var(--dim)'}">${r.type}</span>${r.event?` <span class="hint">#${r.event}</span>`:''}<div>${fmt(r.ts)}</div><span class="hint">${r.reason||''} ${detail(r)}</span></div></div>`;}).join('')||'<p class="hint">No evidence yet. Snapshots appear here after the first compliance check.</p>';}
+function stat(){const n=t=>EV.filter(r=>r.type===t).length,V=n('VIOLATION'),R=EV.filter(r=>r.type==='RESOLVED');
+ $('eC').textContent=n('COMPLIANT');$('eV').textContent=V;$('eR').textContent=V?Math.min(100,Math.round(100*R.length/V))+'%':'–';$('eT').textContent=R.length?(R.reduce((a,r)=>a+(r.response_s||0),0)/R.length).toFixed(1)+' s':'–';}
+async function evid(){try{const Lst=DEMO?demo.evidence():await getJSON(API+'/evidence');const s=Lst.length+'|'+((Lst[0]||{}).ts||'');if(s===sig)return;sig=s;EV=Lst;stat();renderChips();renderGallery();if($('lb').classList.contains('open'))syncView();}catch(e){}}
 function syncView(){const key=view[cur]&&view[cur].image;view=list().filter(r=>r.image);cur=Math.max(0,view.findIndex(r=>r.image===key));renderStrip();show();}
-function openLB(key){view=list().filter(r=>r.image);cur=view.findIndex(r=>r.image===key);if(cur<0)return;
-$('lb').classList.add('open');document.body.style.overflow='hidden';renderStrip();show();}
+function openLB(key){view=list().filter(r=>r.image);cur=view.findIndex(r=>r.image===key);if(cur<0)return;$('lb').classList.add('open');document.body.style.overflow='hidden';renderStrip();show();}
 function closeLB(){$('lb').classList.remove('open');document.body.style.overflow='';}
 function renderStrip(){$('strip').innerHTML=view.map((r,i)=>`<img loading="lazy" src="${img(r)}" data-i="${i}" alt="">`).join('');}
-function show(){const r=view[cur];if(!r)return;$('lbImg').src=img(r);$('lbDl').href=img(r);
-$('lbCount').textContent=`${cur+1} / ${view.length}${filt!=='ALL'?' · '+filt.toLowerCase():''}`;
-$('lbMeta').innerHTML=`<span class="tag" style="background:${TAG[r.type]}">${r.type}</span>${r.event?`<span>Event #${r.event}</span>`:''}<span>${fmt(r.ts)}</span><span class="sub">${r.reason||''}</span><span class="sub">${detail(r)}</span>${r.people?`<span class="sub">${r.people} in view</span>`:''}<span class="sub">${r.unit||''}</span>`;
-$('prev').disabled=cur<=0;$('next').disabled=cur>=view.length-1;
-[...$('strip').children].forEach((el,i)=>el.classList.toggle('cur',i===cur));
-const c=$('strip').children[cur];if(c)c.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
-[cur-1,cur+1].forEach(i=>{if(view[i])new Image().src=img(view[i]);});}
+function show(){const r=view[cur];if(!r)return;$('lbImg').src=img(r);$('lbDl').href=img(r);$('lbCount').textContent=`${cur+1} / ${view.length}${filt!=='ALL'?' · '+filt.toLowerCase():''}`;
+ $('lbMeta').innerHTML=`<span class="tag" style="background:${TAG[r.type]}">${r.type}</span>${r.event?`<span>Event #${r.event}</span>`:''}<span>${fmt(r.ts)}</span><span class="hint">${r.reason||''}</span><span class="hint">${detail(r)}</span>${r.people?`<span class="hint">${r.people} in view</span>`:''}`;
+ $('prev').disabled=cur<=0;$('next').disabled=cur>=view.length-1;[...$('strip').children].forEach((el,i)=>el.classList.toggle('cur',i===cur));const c=$('strip').children[cur];if(c)c.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});[cur-1,cur+1].forEach(i=>{if(view[i])new Image().src=img(view[i]);});}
 function go(d){const n=cur+d;if(n>=0&&n<view.length){cur=n;show();}}
 $('chips').onclick=e=>{const t=e.target.dataset.t;if(t){filt=t;renderChips();renderGallery();}};
 $('gallery').onclick=e=>{const c=e.target.closest('.ev');if(c&&c.dataset.img)openLB(c.dataset.img);};
 $('strip').onclick=e=>{const i=e.target.dataset.i;if(i!==undefined){cur=+i;show();}};
-$('prev').onclick=()=>go(-1);$('next').onclick=()=>go(1);$('lbClose').onclick=closeLB;
-$('lbStage').onclick=e=>{if(e.target.id==='lbStage')closeLB();};
-document.addEventListener('keydown',e=>{if(!$('lb').classList.contains('open'))return;
-if(e.key==='ArrowLeft')go(-1);else if(e.key==='ArrowRight')go(1);else if(e.key==='Escape')closeLB();});
-let tx=null;$('lbStage').addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
-$('lbStage').addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(dx<0?1:-1);tx=null;});
-setInterval(tick,500);tick();setInterval(evid,3000);evid();
-</script><script>
-(()=>{const g=id=>document.getElementById(id),NAMES={en:'English',ta:'தமிழ்',hi:'हिन्दी',fr:'Français'};let P=null,drag=false;
-async function api(q){for(const c of (P!==null?[P]:['','/api'])){try{const r=await fetch(c+'/asa/'+q,{cache:'no-store'});if(r.ok){P=c;return await r.json()}}catch(e){}}throw new Error('api')}
-let sw=0;function paint(s){if(s.error){if(Date.now()-sw<40000){g('vWarm').textContent='switching language…';return}g('vSpk').className='';g('vSpkT').textContent='voice offline';return}
- g('vSpk').className=s.speaker?'on':'';g('vSpkT').textContent=s.speaker?'Speaker online':'Speaker OFFLINE';
- if(document.activeElement!==g('vLang'))g('vLang').value=s.lang;
- if(!drag&&s.volume!=null){const v=Math.round(s.volume*100);g('vVol').value=v;g('vVolN').textContent=v+'%'}
- {const L=NAMES[s.lang]||s.lang;g('vWarm').textContent=!s.voice_ready?`loading ${L} voice…`:(s.cached<s.total?`preparing ${L} phrases ${s.cached}/${s.total}…`:'')}}
-async function poll(){try{paint(await api('status'))}catch(e){paint({error:1})}}
-g('vLang').onchange=async e=>{sw=Date.now();g('vWarm').textContent='switching…';try{await api('lang?value='+e.target.value)}catch(_){};poll()};
-g('vVol').oninput=e=>{drag=true;g('vVolN').textContent=e.target.value+'%'};
-g('vVol').onchange=async e=>{try{await api('volume?value='+(e.target.value/100).toFixed(2))}catch(_){};drag=false;poll()};
-g('vTest').onclick=async()=>{try{await api('test')}catch(_){}};
-poll();setInterval(poll,3000)})();
-</script>
-<style>
-#asaDrv{--dvbg:#191d22;--dvln:#333b44;--dvfg:#e9edf1;--dvdim:#98a4b0;--dvmute:#5a6672;
- --dvok:#3fb27f;--dvwarn:#f0a202;--dvbad:#ef5a52;
- background:var(--dvbg);border:1px solid var(--dvln);border-radius:11px;
- padding:15px 16px 16px;margin:14px auto;max-width:520px;color:var(--dvfg);
- font:14px/1.5 ui-sans-serif,"Segoe UI",Roboto,system-ui,sans-serif}
-#asaDrv .dvh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-#asaDrv .dvh b{font-size:12px;letter-spacing:.05em;color:var(--dvdim);font-weight:650}
-#asaDrv .arm{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dvmute);cursor:pointer}
-#asaDrv .arm input{width:16px;height:16px;accent-color:var(--dvwarn)}
-#asaDrv .spd{display:flex;align-items:center;gap:11px;margin-bottom:13px}
-#asaDrv .spd input{flex:1;accent-color:var(--dvok)}
-#asaDrv .spd span{font-size:12px;color:var(--dvdim);min-width:74px;font-variant-numeric:tabular-nums}
-#asaDrv .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-#asaDrv button{background:#20262d;border:1px solid var(--dvln);color:var(--dvfg);
- border-radius:10px;font:inherit;font-size:20px;height:62px;cursor:pointer;
- touch-action:none;-webkit-user-select:none;user-select:none;
- -webkit-tap-highlight-color:transparent}
-#asaDrv button:disabled{opacity:.35;cursor:not-allowed}
-#asaDrv button.hot{background:var(--dvok);border-color:var(--dvok);color:#0d1117}
-#asaDrv .stop{grid-column:1/-1;height:48px;font-size:14px;font-weight:650;
- background:#2a1c1c;border-color:#5d2b28;color:var(--dvbad);letter-spacing:.05em}
-#asaDrv .stop:active{background:var(--dvbad);color:#160d0d}
-#asaDrv .sp{visibility:hidden}
-#asaDrv .st{margin-top:11px;font-size:11.5px;color:var(--dvmute);
- font-variant-numeric:tabular-nums;min-height:17px}
-#asaDrv .st.err{color:var(--dvbad)}
-#asaDrv .warn{margin-top:9px;font-size:11.5px;color:var(--dvwarn);line-height:1.45}
-</style>
-<div id="asaDrv">
-  <div class="dvh"><b>DRIVE</b>
-    <label class="arm"><input type="checkbox" id="dvArm">armed</label></div>
-  <div class="spd"><input type="range" id="dvSpd" min="15" max="100" value="35">
-    <span id="dvSpdN">35% &middot; 70</span></div>
-  <div class="pad">
-    <div class="sp"></div>
-    <button data-l="1"  data-r="1"  disabled>&#9650;</button>
-    <div class="sp"></div>
-    <button data-l="-1" data-r="1"  disabled>&#9668;</button>
-    <button data-l="-1" data-r="-1" disabled>&#9660;</button>
-    <button data-l="1"  data-r="-1" disabled>&#9658;</button>
-    <button class="stop" id="dvStop">STOP</button>
-  </div>
-  <div class="st" id="dvSt">disarmed</div>
-  <div class="warn">Wheels off the ground until the phase test sets L_INVERT / R_INVERT.</div>
-</div>
-<script>
-(function(){
- var arm=document.getElementById('dvArm'), spd=document.getElementById('dvSpd'),
-     spdN=document.getElementById('dvSpdN'), st=document.getElementById('dvSt'),
-     btns=[].slice.call(document.querySelectorAll('#asaDrv .pad button[data-l]')),
-     timer=null, held=null, idle=null;
- function pwm(){return Math.round(200*spd.value/100);}
- function show(t,e){st.textContent=t;st.className=e?'st err':'st';}
- spd.oninput=function(){spdN.textContent=spd.value+'% \u00b7 '+pwm();};
- function send(p){return fetch(p,{cache:'no-store'}).then(function(r){return r.json();});}
- function halt(){
-  if(timer){clearInterval(timer);timer=null;}
-  if(held){held.classList.remove('hot');held=null;}
-  send('/asa/halt').then(function(){show('stopped');})
-                   .catch(function(){show('halt failed - use the e-stop',1);});
- }
- function tick(l,r){
-  var s=pwm();
-  send('/asa/drive?l='+(l*s)+'&r='+(r*s))
-   .then(function(j){show('l '+j.l+'  r '+j.r);})
-   .catch(function(){show('link lost - halting',1);halt();});
- }
- function start(b,ev){
-  ev.preventDefault();
-  if(!arm.checked)return;
-  if(timer)return;
-  held=b;b.classList.add('hot');
-  var l=+b.dataset.l, r=+b.dataset.r;
-  tick(l,r);
-  timer=setInterval(function(){tick(l,r);},100);
-  clearTimeout(idle);
- }
- btns.forEach(function(b){
-  b.addEventListener('pointerdown',function(e){start(b,e);});
-  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
-   b.addEventListener(ev,function(e){e.preventDefault();if(held===b)halt();});
-  });
-  b.addEventListener('contextmenu',function(e){e.preventDefault();});
- });
- document.getElementById('dvStop').addEventListener('click',function(){
-  arm.checked=false;setArm();halt();});
- window.addEventListener('blur',function(){if(timer)halt();});
- document.addEventListener('visibilitychange',function(){
-  if(document.hidden&&timer)halt();});
- function setArm(){
-  btns.forEach(function(b){b.disabled=!arm.checked;});
-  clearTimeout(idle);
-  if(arm.checked){
-   show('armed - hold a direction');
-   idle=setTimeout(function(){arm.checked=false;setArm();},120000);
-  }else{ if(timer)halt(); else show('disarmed'); }
- }
- arm.addEventListener('change',setArm);
-})();
-</script>
-
-<!-- asa-power-card -->
-<style>
-#asa-power-card{position:fixed;right:16px;bottom:16px;z-index:9999;min-width:190px;
- font:14px/1.35 system-ui,sans-serif;background:#1b1f24;color:#e8eaed;border:1px solid #333;
- border-radius:12px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,.35)}
-#asa-power-card .t{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9aa0a6}
-#asa-power-card .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
-#asa-power-card .bar{height:6px;background:#333;border-radius:3px;margin:6px 0 4px;overflow:hidden}
-#asa-power-card .bar i{display:block;height:100%;width:0;background:#34a853;transition:width .4s}
-#asa-power-card .s{font-size:12px;color:#9aa0a6}
-#asa-power-card.estop{background:#b3261e;border-color:#ff8a80}
-#asa-power-card.estop .t,#asa-power-card.estop .s{color:#fff}
-#asa-power-card.low .bar i{background:#fbbc04}
-#asa-estop-banner{display:none;position:fixed;left:0;right:0;top:0;z-index:9998;padding:10px;
- text-align:center;font:700 18px system-ui,sans-serif;color:#fff;background:#b3261e;letter-spacing:.1em}
-</style>
-<div id="asa-estop-banner">■ E-STOP PRESSED: MOTORS DISABLED</div>
-<div id="asa-power-card">
- <div class="t">Pack</div>
- <div class="v"><span id="asa-pv">--.--</span> V</div>
- <div class="bar"><i id="asa-pb"></i></div>
- <div class="s" id="asa-ps">connecting…</div>
-</div>
-<script>
-(function(){
- const T=[[12.6,100],[12.45,90],[12.33,80],[12.25,70],[12.07,60],[11.95,50],[11.86,40],[11.74,30],[11.62,20],[11.45,10],[11.1,0]];
- function pct(v){ if(v>=T[0][0])return 100; for(let i=1;i<T.length;i++){ if(v>=T[i][0]){
-   const [v1,p1]=T[i-1],[v0,p0]=T[i]; return Math.round(p0+(v-v0)*(p1-p0)/(v1-v0)); } } return 0; }
- const card=document.getElementById('asa-power-card'), ban=document.getElementById('asa-estop-banner'),
-       pv=document.getElementById('asa-pv'), pb=document.getElementById('asa-pb'), ps=document.getElementById('asa-ps');
- async function tick(){
-  try{
-   const r=await fetch('/asa/power',{cache:'no-store'}); const d=await r.json();
-   if(!d.ok) throw new Error(d.err||'bridge');
-   const v=d.pack_v, p=pct(v);
-   card.classList.toggle('estop', d.estop); ban.style.display=d.estop?'block':'none';
-   card.classList.toggle('low', !d.estop && v<11.1);
-   if(d.estop){ pv.textContent='--.--'; pb.style.width='0'; ps.textContent='E-STOP: release, hands off 1 s'; }
-   else { pv.textContent=v.toFixed(2); pb.style.width=p+'%';
-     ps.textContent = v<10.5 ? '⚠ LOW: stop driving' : `≈${p}% (accurate at rest)`; }
-  }catch(e){ ps.textContent='no data: '+e.message; }
- }
- tick(); setInterval(tick,500);
-})();
-</script>
-
-</body></html>
+$('prev').onclick=()=>go(-1);$('next').onclick=()=>go(1);$('lbClose').onclick=closeLB;$('lbStage').onclick=e=>{if(e.target.id==='lbStage')closeLB();};
+document.addEventListener('keydown',e=>{if(!$('lb').classList.contains('open'))return;if(e.key==='ArrowLeft')go(-1);else if(e.key==='ArrowRight')go(1);else if(e.key==='Escape')closeLB();});
+let tx=null;$('lbStage').addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});$('lbStage').addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(dx<0?1:-1);tx=null;});
+setInterval(evid,3000);evid();
+</script></body></html>

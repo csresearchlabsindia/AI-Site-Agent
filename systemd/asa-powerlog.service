@@ -1,0 +1,13 @@
+[Unit]
+Description=ASA pack voltage logger (CSV + :8096)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=arduino
+ExecStart=/usr/bin/python3 /usr/local/bin/asa-powerlog.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
