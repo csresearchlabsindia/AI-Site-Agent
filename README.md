@@ -481,7 +481,7 @@ git clone https://github.com/csresearchlabsindia/AI-Site-Agent.git
 ## Installation
 
 Assumes a UNO Q flashed with the standard image, on your network. Substitute your
-own IP for `<unoq>`.
+own hostname or LAN address for `<unoq>`.
 
 ### 1. Base system
 

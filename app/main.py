@@ -6,9 +6,9 @@ from arduino.app_bricks.keyword_spotting import KeywordSpotting
 
 ui = WebUI()   # serves assets/index.html on port 7000
 
-CANDIDATES = ["http://172.17.0.1:8090/state", "http://<unoq>:8090/state",
+CANDIDATES = ["http://172.17.0.1:8090/state",
               "http://host.docker.internal:8090/state", "http://127.0.0.1:8090/state"]
-VOICE_CMD = ["http://172.17.0.1:8091", "http://<unoq>:8091"]
+VOICE_CMD = ["http://172.17.0.1:8091"]
 IDLE, VIOLATION, OFFLINE, THANKS, BOOT, COMPLIANT, CHECKING, NOT_ON_HEAD, LISTEN, THINK = range(10)
 NAMES = ["IDLE", "VIOLATION", "OFFLINE", "THANKS", "BOOT", "COMPLIANT", "CHECKING", "NOT_ON_HEAD", "LISTEN", "THINK", "ATTENTION"]
 st = {"url": None, "good": None, "code": None, "sent": 0.0, "status": None, "seen": False}
