@@ -715,9 +715,9 @@ a misplaced element before the next pour rather than after.
 - `No-Hat.mp4` — violation detection and spoken alert
 - `HeyKeyword.mp4` — "hey arduino" keyword spotting → spoken status report
 - `faceDisplay.mp4` — LED matrix face animation states
-- `[FILL]` — first drive on battery, 1 Oct 2026
-- `[FILL]` — e-stop pressed while driving; dashboard hazard band
-- `[FILL]` — dashboard screenshot, Power tab after the runtime run
+- `DONE` — first drive on battery
+- `DONE` — e-stop pressed while driving; dashboard hazard band
+- `DONE` — dashboard screenshot, Power tab after the runtime run
 
 ---
 
