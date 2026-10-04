@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#30363d"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="#2F6FD6"/></marker>
+  </defs>
+  <rect width="1400" height="760" fill="#ffffff"/>
+  <text x="40" y="48" font-size="26" font-weight="600" fill="#15181c">ASA-01 · vision pipeline with SLAM  (DepthAI 3.10, single camera owner: asa-vision)</text>
+  <text x="40" y="74" font-size="14" fill="#6b747e">Drawing ASA-SW-02 rev A</text>
+
+  <!-- device column -->
+  <rect x="40" y="110" width="330" height="560" rx="10" fill="#f4f6f8" stroke="#30363d" stroke-width="1"/>
+  <text x="56" y="138" font-size="15" font-weight="600" fill="#15181c">OAK-D (Myriad X)</text>
+
+  <g><rect x="60" y="160" width="130" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="125" y="186" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">CAM_B  left</text><text x="125" y="206" font-size="12" text-anchor="middle" fill="#6b747e">OV9282 · 640×400</text></g>
+  <g><rect x="220" y="160" width="130" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="285" y="186" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">CAM_C  right</text><text x="285" y="206" font-size="12" text-anchor="middle" fill="#6b747e">OV9282 · 640×400</text></g>
+  <g><rect x="60" y="260" width="290" height="72" rx="6" fill="#ffffff" stroke="#30363d"/><text x="205" y="286" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">StereoDepth</text><text x="205" y="306" font-size="12" text-anchor="middle" fill="#6b747e">LR-check · depth aligned to CAM_A</text><text x="205" y="322" font-size="12" text-anchor="middle" fill="#6b747e">out 512×288 @ 8 fps · uint16 mm</text></g>
+  <g><rect x="60" y="370" width="290" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="205" y="396" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">CAM_A  colour</text><text x="205" y="416" font-size="12" text-anchor="middle" fill="#6b747e">IMX378 · 512×288 @ 8 fps · GRAY8 + BGR</text></g>
+  <g><rect x="60" y="470" width="290" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="205" y="496" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">SpatialDetectionNetwork ×2</text><text x="205" y="516" font-size="12" text-anchor="middle" fill="#6b747e">hardhat (512×288) · YOLOv6n person</text></g>
+  <g><rect x="60" y="570" width="290" height="64" rx="6" fill="#ffffff" stroke="#9aa3ad" stroke-dasharray="5 4"/><text x="205" y="596" font-size="13" text-anchor="middle" font-weight="600" fill="#6b747e">IMU  BNO086</text><text x="205" y="616" font-size="12" text-anchor="middle" fill="#9aa3ad">200 Hz · ASA_SLAM_IMU=0 (off)</text></g>
+
+  <path d="M125 224 V260" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+  <path d="M285 224 V260" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+  <path d="M205 434 V470" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+  <path d="M205 332 V370" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+
+  <!-- host column -->
+  <rect x="440" y="110" width="520" height="560" rx="10" fill="#eef4fd" stroke="#2F6FD6" stroke-width="1"/>
+  <text x="456" y="138" font-size="15" font-weight="600" fill="#15181c">UNO Q · QRB2210 (Linux, oak-venv)</text>
+
+  <g><rect x="470" y="160" width="460" height="86" rx="6" fill="#ffffff" stroke="#30363d"/><text x="700" y="186" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">PPE rule engine</text><text x="700" y="206" font-size="12" text-anchor="middle" fill="#6b747e">on-head test · 3-D zone 0.3–2.8 m · 10-frame vote</text><text x="700" y="226" font-size="12" text-anchor="middle" fill="#6b747e">evidence JPEG + JSONL · 14-day retention</text></g>
+
+  <g><rect x="470" y="290" width="220" height="86" rx="6" fill="#ffffff" stroke="#2F6FD6" stroke-width="1.5"/><text x="580" y="316" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">RTABMapVIO</text><text x="580" y="336" font-size="12" text-anchor="middle" fill="#6b747e">rect GRAY8 + depth</text><text x="580" y="356" font-size="12" text-anchor="middle" fill="#6b747e">pose x y yaw · vision-only</text></g>
+  <g><rect x="710" y="290" width="220" height="86" rx="6" fill="#ffffff" stroke="#2F6FD6" stroke-width="1.5"/><text x="820" y="316" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">RTABMapSLAM</text><text x="820" y="336" font-size="12" text-anchor="middle" fill="#6b747e">2-D occupancy grid · 5 cm</text><text x="820" y="356" font-size="12" text-anchor="middle" fill="#6b747e">range 0.3–4 m · 0.5 Hz</text></g>
+  <path d="M690 333 H710" fill="none" stroke="#2F6FD6" stroke-width="1.5" marker-end="url(#ab)"/>
+
+  <g><rect x="470" y="420" width="460" height="86" rx="6" fill="#ffffff" stroke="#30363d"/><text x="700" y="446" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">HTTP :8090</text><text x="700" y="466" font-size="12" text-anchor="middle" fill="#6b747e">/state  /video  /evidence  /evidence.csv</text><text x="700" y="486" font-size="12" text-anchor="middle" fill="#6b747e">/pose  /map.png</text></g>
+
+  <g><rect x="470" y="550" width="460" height="86" rx="6" fill="#ffffff" stroke="#30363d"/><text x="700" y="576" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">Map renderer · 1 Hz</text><text x="700" y="596" font-size="12" text-anchor="middle" fill="#6b747e">grid 0 free · 89 unknown · 178 occupied</text><text x="700" y="616" font-size="12" text-anchor="middle" fill="#6b747e">robot drawn as heading arrow</text></g>
+
+  <!-- device -> host links -->
+  <path d="M350 502 H410 V203 H470" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+  <path d="M350 296 H400 V320 H470" fill="none" stroke="#2F6FD6" stroke-width="1.5" marker-end="url(#ab)"/>
+  <path d="M350 402 H390 V346 H470" fill="none" stroke="#2F6FD6" stroke-width="1.5" marker-end="url(#ab)"/>
+  <path d="M350 602 H420 V366 H470" fill="none" stroke="#9aa3ad" stroke-dasharray="5 4" marker-end="url(#a)"/>
+  <path d="M700 246 V290" fill="none" stroke="#ffffff" stroke-width="0"/>
+  <path d="M580 376 V420" fill="none" stroke="#2F6FD6" stroke-width="1.5" marker-end="url(#ab)"/>
+  <path d="M820 376 V550" fill="none" stroke="#2F6FD6" stroke-width="1.5" marker-end="url(#ab)"/>
+  <path d="M700 246 V265 H950 V463 H930" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+  <path d="M700 506 V550" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+
+  <!-- client column -->
+  <rect x="1030" y="110" width="330" height="560" rx="10" fill="#f4f6f8" stroke="#30363d" stroke-width="1"/>
+  <text x="1046" y="138" font-size="15" font-weight="600" fill="#15181c">ASA Mission Control (App Lab)</text>
+  <g><rect x="1050" y="160" width="290" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="1195" y="186" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">Live</text><text x="1195" y="206" font-size="12" text-anchor="middle" fill="#6b747e">status · video · voice</text></g>
+  <g><rect x="1050" y="250" width="290" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="1195" y="276" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">Drive</text><text x="1195" y="296" font-size="12" text-anchor="middle" fill="#6b747e">arm · hold-to-drive · e-stop state</text></g>
+  <g><rect x="1050" y="340" width="290" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="1195" y="366" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">Power</text><text x="1195" y="386" font-size="12" text-anchor="middle" fill="#6b747e">pack V · 30 s log · runtime</text></g>
+  <g><rect x="1050" y="430" width="290" height="64" rx="6" fill="#ffffff" stroke="#2F6FD6" stroke-width="1.5"/><text x="1195" y="456" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">Map</text><text x="1195" y="476" font-size="12" text-anchor="middle" fill="#6b747e">grid PNG · pose · area · heading</text></g>
+  <g><rect x="1050" y="520" width="290" height="64" rx="6" fill="#ffffff" stroke="#30363d"/><text x="1195" y="546" font-size="13" text-anchor="middle" font-weight="600" fill="#15181c">Evidence</text><text x="1195" y="566" font-size="12" text-anchor="middle" fill="#6b747e">gallery · audit CSV</text></g>
+  <path d="M930 463 H990 V462 H1050" fill="none" stroke="#2F6FD6" stroke-width="1.5" marker-end="url(#ab)"/>
+  <path d="M990 462 V192 H1050" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+  <path d="M990 462 V552 H1050" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+  <path d="M990 372 H1050" fill="none" stroke="#30363d" marker-end="url(#a)"/>
+
+  <!-- legend -->
+  <rect x="40" y="700" width="1320" height="40" rx="6" fill="#ffffff" stroke="#30363d"/>
+  <line x1="60" y1="720" x2="100" y2="720" stroke="#30363d"/><text x="110" y="724" font-size="12" fill="#15181c">existing PPE path</text>
+  <line x1="260" y1="720" x2="300" y2="720" stroke="#2F6FD6" stroke-width="1.5"/><text x="310" y="724" font-size="12" fill="#15181c">SLAM path</text>
+  <line x1="500" y1="720" x2="540" y2="720" stroke="#9aa3ad" stroke-dasharray="5 4"/><text x="550" y="724" font-size="12" fill="#15181c">fitted, disabled by flag</text>
+  <text x="760" y="724" font-size="12" fill="#6b747e">Camera lens 0.70 m above floor · one process owns the OAK-D · PPE unaffected (8 fps)</text>
+</svg>

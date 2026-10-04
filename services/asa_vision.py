@@ -32,7 +32,7 @@ SLAM_PARAMS = {"RGBD/CreateOccupancyGrid": "true", "Grid/3D": "false", "Grid/Cel
                "Grid/MaxGroundHeight": str(round(-LENS_H + 0.15, 2)),   # ground band, relative to the lens
                "Grid/MinGroundHeight": str(round(-LENS_H - 0.15, 2)),
                "Grid/NormalsSegmentation": "false", "Grid/NoiseFilteringRadius": "0.15",
-               "Grid/NoiseFilteringMinNeighbors": "3", "Rtabmap/DetectionRate": "1"}
+               "Grid/NoiseFilteringMinNeighbors": "3", "Rtabmap/DetectionRate": "0.5"}
 # OAK-D (BW1098OBC) ships without IMU calibration in EEPROM; this is Luxonis's board-file value (cm, BNO086 -> CAM_A)
 IMU_R = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]; IMU_T = [1.5, 1.3662, 0.0]
 GRID_UNKNOWN, GRID_FREE, GRID_OCC = 89, 0, 178   # MapData.map encoding
@@ -337,13 +337,22 @@ def main():
                 imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.GYROSCOPE_RAW], 200)
                 imu.setBatchReportThreshold(1); imu.setMaxBatchReports(10)
                 vio = p.create(dai.node.RTABMapVIO)
+                try:   # tougher tracking on low-texture scenes
+                    vio.setParams({"Odom/ImageDecimation": "1", "Vis/MaxFeatures": "400"})
+                except Exception as e:
+                    print(f"[asa-vision] vio.setParams ?: {e}", flush=True)
                 grey.link(vio.rect); stereo.depth.link(vio.depth)
                 if SLAM_IMU:
                     imu.out.link(vio.imu)
                 slam = p.create(dai.node.RTABMapSLAM)
                 slam.setParams(SLAM_PARAMS)
+                for inp in (slam.rect, slam.depth, slam.odom):
+                    try:
+                        inp.setBlocking(False); inp.setMaxSize(1)      # SLAM takes the latest, never stalls VIO
+                    except Exception as e:
+                        print(f"[asa-vision] slam input queue ?: {e}", flush=True)
                 grey.link(slam.rect); stereo.depth.link(slam.depth); vio.transform.link(slam.odom)
-                slam_q = slam.transform.createOutputQueue(maxSize=1, blocking=False)
+                slam_q = vio.transform.createOutputQueue(maxSize=1, blocking=False)   # fast odometry pose for the arrow
                 grid_q = slam.occupancyGridMap.createOutputQueue(maxSize=1, blocking=False)
                 print(f"[asa-vision] SLAM branch attached (RTABMapVIO -> RTABMapSLAM, shares PPE depth, imu={'on' if SLAM_IMU else 'off'})", flush=True)
             except Exception as e:

@@ -478,6 +478,32 @@ git clone https://github.com/csresearchlabsindia/AI-Site-Agent.git
 
 ---
 
+## SLAM (Tier 2, Oct 2026)
+
+ASA builds a 2-D occupancy grid of its surroundings on the UNO Q, with no ROS and no extra hardware. DepthAI 3.10
+provides RTAB-Map's VIO and SLAM as pipeline nodes; they run inside `asa-vision` and re-use the depth map the PPE
+detectors already produce, so the OAK-D keeps a single owner and the Myriad X does no extra work.
+
+![ASA-SW-02 vision pipeline with SLAM](docs/drawings/asa-slam-pipeline.png)
+
+| Item | Value |
+|---|---|
+| Odometry | `RTABMapVIO`, vision-based (IMU fusion via `ASA_SLAM_IMU=1`) |
+| Mapping | `RTABMapSLAM`, 5 cm cells, 0.3–4 m range, 0.5 Hz detection |
+| Inputs | 512×288 GRAY8 from CAM_A + detector depth (aligned to CAM_A), 8 fps |
+| Height filters | relative to the lens at 0.70 m: ground −0.85…−0.55 m, obstacles to +1.2 m |
+| Outputs | `GET /pose` (x, y, yaw, grid size, area), `GET /map.png` (rendered grid, robot as heading arrow) |
+| Dashboard | **Map** tab: live grid, mapped area, map size, position, heading, PNG download |
+| Flags | `ASA_SLAM=0` disables SLAM; the PPE path is independent of it |
+| Cost | PPE unchanged at 8 fps; `asa-vision` ≈ 2.7 cores total with SLAM on |
+
+**Grid encoding** (`MapData.map`): 0 free, 89 unknown, 178 occupied; rows = y, columns = x; origin at `minX`/`minY`.
+
+![First map](docs/maps/map-first-grid.png)
+
+**Camera note:** this OAK-D (BW1098OBC) ships without IMU calibration in EEPROM. `slam/oak_calib_backup.json` holds
+the factory calibration and the IMU extrinsics from Luxonis's board file are applied at runtime (no EEPROM write).
+
 ## Installation
 
 Assumes a UNO Q flashed with the standard image, on your network. Substitute your
