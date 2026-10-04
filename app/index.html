@@ -95,6 +95,11 @@ body.estop .pad button{opacity:.3}
 canvas{width:100%;height:260px;display:block}
 .range{display:flex;gap:6px;margin-bottom:10px}.range button{background:none;border:1px solid var(--ln);color:var(--mut);border-radius:99px;padding:4px 12px;font-size:12.5px}.range button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 
+/* map */
+#mapWrap{position:relative;background:#1a1a1e;border:1px solid var(--ln);border-radius:var(--r);min-height:260px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#mapImg{max-width:100%;max-height:70vh;image-rendering:pixelated;display:none}
+#mapEmpty{padding:24px;text-align:center;max-width:420px}
+
 /* evidence */
 .evhead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--ln);background:var(--bg);color:var(--mut);padding:5px 12px;border-radius:99px;font-size:12.5px}
@@ -149,6 +154,7 @@ kbd{background:var(--sf2);border-radius:4px;padding:1px 6px;font-size:11px}
  <button role="tab" aria-selected="true" data-p="live">Live</button>
  <button role="tab" data-p="drive">Drive</button>
  <button role="tab" data-p="power">Power</button>
+ <button role="tab" data-p="map">Map</button>
  <button role="tab" data-p="evid">Evidence<span class="n" id="evN"></span></button>
 </nav>
 
@@ -184,6 +190,18 @@ kbd{background:var(--sf2);border-radius:4px;padding:1px 6px;font-size:11px}
  </div>
  <canvas id="chart" height="260"></canvas>
  <p class="hint" style="margin:10px 0 0">Logged every 30 s by the power-log service. Stop driving at 10.5 V under load. The estimate uses the drop over the last 10 minutes, so it is only meaningful while the robot is doing what it will keep doing. <a class="btn" id="csvP" href="#" style="margin-left:8px">Download CSV</a></p>
+</div></section>
+
+<section class="panel" id="p-map"><div class="card">
+ <div class="evhead"><h2 style="margin:0">Site map</h2><span class="hint" id="mapState">waiting for the vision service</span></div>
+ <div class="pstats">
+  <div><small>Mapped area</small><b class="num" id="mArea">–</b></div>
+  <div><small>Map size</small><b class="num" id="mSize">–</b></div>
+  <div><small>Robot position</small><b class="num" id="mPose">–</b></div>
+  <div><small>Heading</small><b class="num" id="mYaw">–</b></div>
+ </div>
+ <div id="mapWrap"><img id="mapImg" alt="occupancy grid"><div id="mapEmpty" class="hint">No map yet. The grid appears once the OAK-D has seen the floor in front of the robot; it grows as the robot drives.</div></div>
+ <p class="hint" style="margin:10px 0 0">RTAB-Map on the UNO Q builds a 5 cm occupancy grid from the OAK-D depth and IMU, sharing the depth stream the PPE check already uses. Grey is floor the robot has seen, red is an obstacle, dark is unexplored. The green arrow is the robot. <a class="btn" id="mapDl" href="#" style="margin-left:8px">Download PNG</a></p>
 </div></section>
 
 <section class="panel" id="p-evid"><div class="card">
@@ -321,6 +339,22 @@ function drawChart(){const c=$('chart');if(!c.offsetWidth)return;const dpr=devic
  for(const r of rows){if(r[0]<t0)continue;if(r[1]<=8){pen=false;continue;}const x=X(r[0]),y=Y(r[1]);pen?g.lineTo(x,y):g.moveTo(x,y);pen=true;}g.stroke();
  g.fillStyle=cs.getPropertyValue('--bad');for(const r of rows){if(r[0]>=t0&&r[2])g.fillRect(X(r[0])-1,T,2,Hh-T-B);}}
 window.addEventListener('resize',drawChart);fetchLog();setInterval(fetchLog,30000);
+
+/* ---------- map ---------- */
+$('mapDl').href=API+'/map.png';
+let mapSeq=0;
+async function mapTick(){if(DEMO||!document.getElementById('p-map').classList.contains('on'))return;
+ try{const p=await getJSON(API+'/pose');
+  if(!p.on){$('mapState').textContent='SLAM is switched off on the robot';return;}
+  if(!p.ok){$('mapState').textContent='SLAM starting…';return;}
+  $('mapState').textContent=(p.level===false?'pose frame tilted — map may be rotated':'live · '+p.poses+' poses · '+p.grids+' grid updates');
+  $('mArea').textContent=p.free_m2?p.free_m2.toFixed(1)+' m²':'–';
+  $('mSize').textContent=p.w?(p.w*p.cell).toFixed(1)+' × '+(p.h*p.cell).toFixed(1)+' m':'–';
+  $('mPose').textContent=p.x.toFixed(2)+', '+p.y.toFixed(2)+' m';
+  $('mYaw').textContent=Math.round(p.yaw*180/Math.PI)+'°';
+  if(p.grids&&p.grids!==mapSeq){mapSeq=p.grids;const im=$('mapImg');im.onload=()=>{im.style.display='block';$('mapEmpty').style.display='none';};im.src=API+'/map.png?t='+Date.now();}
+ }catch(e){$('mapState').textContent='vision service not reachable';}}
+setInterval(mapTick,1500);mapTick();
 
 /* ---------- evidence ---------- */
 const TAG={SYSTEM:'var(--dim)',COMPLIANT:'var(--ok)',VIOLATION:'var(--bad)',RESOLVED:'var(--info)',UNRESOLVED:'var(--hv)'};

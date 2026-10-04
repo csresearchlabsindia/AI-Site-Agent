@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""ASA vision v3 - person-anchored PPE check: the hard hat must be ON the head.
-   /  live view   |   /video  MJPEG   |   /state  JSON"""
-import json, time, threading, signal, sys
+"""ASA vision v4 - person-anchored PPE check (the hard hat must be ON the head) + on-board SLAM.
+   /  live view   |   /video  MJPEG   |   /state  JSON   |   /map.png  occupancy grid   |   /pose  JSON"""
+import json, time, threading, signal, sys, math
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import cv2
 import depthai as dai
 import os, io, csv, datetime
+import numpy as np
 
 HAT_MODEL = "/home/arduino/models/hardhat.tar.xz"   # Hardhat / NO-Hardhat
 PERSON_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"                          # COCO 'person'
@@ -18,6 +19,55 @@ DZ_MAX = 700                              # mm: hat must be at the person's dept
 WIN, ON_N, SAFE_N, HOLD_S = 10, 7, 6, 4.0
 HAT_MEMORY_S = 1.0          # ignore hat dropouts shorter than this at the same spot
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+
+# ---- SLAM (RTAB-Map VIO + 2-D occupancy grid, shares the PPE depth) ----
+SLAM_ON = os.environ.get("ASA_SLAM", "1") != "0"
+SLAM_IMU = os.environ.get("ASA_SLAM_IMU", "0") == "1"   # IMU extrinsics rotation unresolved; vision-only VIO by default
+SLAM_SIZE = (512, 288)        # must equal the depth size set by the spatial detectors
+LENS_H = 0.70                 # m, OAK-D lens above the floor
+CELL = 0.05                   # m per grid cell
+SLAM_PARAMS = {"RGBD/CreateOccupancyGrid": "true", "Grid/3D": "false", "Grid/CellSize": str(CELL),
+               "Grid/RangeMax": "4.0", "Grid/RangeMin": "0.3",
+               "Grid/MaxObstacleHeight": "1.2",                     # above the lens
+               "Grid/MaxGroundHeight": str(round(-LENS_H + 0.15, 2)),   # ground band, relative to the lens
+               "Grid/MinGroundHeight": str(round(-LENS_H - 0.15, 2)),
+               "Grid/NormalsSegmentation": "false", "Grid/NoiseFilteringRadius": "0.15",
+               "Grid/NoiseFilteringMinNeighbors": "3", "Rtabmap/DetectionRate": "1"}
+# OAK-D (BW1098OBC) ships without IMU calibration in EEPROM; this is Luxonis's board-file value (cm, BNO086 -> CAM_A)
+IMU_R = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]; IMU_T = [1.5, 1.3662, 0.0]
+GRID_UNKNOWN, GRID_FREE, GRID_OCC = 89, 0, 178   # MapData.map encoding
+slam_state = {"on": SLAM_ON, "ok": False, "x": 0.0, "y": 0.0, "yaw": 0.0, "level": None, "poses": 0, "grids": 0,
+              "w": 0, "h": 0, "min_x": 0.0, "min_y": 0.0, "cell": CELL, "free_m2": 0.0, "occ_cells": 0, "ts": 0}
+map_png = {"data": None, "seq": 0}
+
+def quat_rpy(q):
+    x, y, z, w = q.qx, q.qy, q.qz, q.qw
+    return (math.atan2(2*(w*x+y*z), 1-2*(x*x+y*y)), math.asin(max(-1.0, min(1.0, 2*(w*y-z*x)))),
+            math.atan2(2*(w*z+x*y), 1-2*(y*y+z*z)))
+
+def render_map(grid, pose):
+    """MapData -> PNG bytes. Rows are y, columns are x; drawn with +x right and +y up, robot as a heading arrow."""
+    a = grid.map.getCvFrame()
+    if a.ndim != 2 or a.size == 0:
+        return None
+    h, w = a.shape
+    img = np.full((h, w, 3), (26, 26, 30), np.uint8)       # unknown: near-black
+    img[a == GRID_FREE] = (82, 82, 92)                       # free: grey
+    img[a == GRID_OCC] = (56, 76, 240)                       # occupied: red (BGR)
+    img = img[::-1]                                          # +y up
+    f = max(1, min(6, 720 // max(h, w)))
+    img = cv2.resize(img, None, fx=f, fy=f, interpolation=cv2.INTER_NEAREST)
+    cx = (pose["x"] - grid.minX) / CELL * f
+    cy = (h - (pose["y"] - grid.minY) / CELL) * f
+    if 0 <= cx < img.shape[1] and 0 <= cy < img.shape[0]:
+        L = max(6, 3 * f); yaw = pose["yaw"]
+        tip = (int(cx + L * math.cos(yaw)), int(cy - L * math.sin(yaw)))
+        bl = (int(cx + L * .6 * math.cos(yaw + 2.5)), int(cy - L * .6 * math.sin(yaw + 2.5)))
+        br = (int(cx + L * .6 * math.cos(yaw - 2.5)), int(cy - L * .6 * math.sin(yaw - 2.5)))
+        cv2.fillPoly(img, [np.array([tip, bl, br], np.int32)], (90, 220, 120))
+    cv2.putText(img, f"{w*CELL:.1f} x {h*CELL:.1f} m   {CELL*100:.0f} cm cells", (6, img.shape[0] - 6), FONT, 0.4, (200, 200, 200), 1)
+    ok, enc = cv2.imencode(".png", img)
+    return enc.tobytes() if ok else None
 
 state = {"ts": 0, "fps": 0.0, "status": "STARTING", "persons": [], "hats": [],
          "violation": None, "events": 0, "clear_reason": None}
@@ -69,6 +119,17 @@ class Handler(BaseHTTPRequestHandler):
             with lock:
                 body = json.dumps(state).encode()
             self._send(200, "application/json", body)
+        elif path == "/pose":
+            with lock:
+                body = json.dumps(slam_state).encode()
+            self._send(200, "application/json", body)
+        elif path == "/map.png":
+            with lock:
+                data = map_png["data"]
+            if data is None:
+                self._send(503, "text/plain", b"no map yet")
+            else:
+                self._send(200, "image/png", data)
         elif path == "/video":
             self.send_response(200)
             self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
@@ -236,7 +297,21 @@ def main():
     bad_hist, safe_hist = deque(maxlen=WIN), deque(maxlen=WIN)
     status, events, last_bad, last_bad_t, clear_reason = "CLEAR", 0, None, 0.0, None
     SIZE = (640, 400)
-    with dai.Pipeline() as p:
+    dev = None
+    if SLAM_ON:
+        try:   # inject the missing IMU extrinsics for this session only (no EEPROM write)
+            dev = dai.Device(); cal = dev.readCalibration()
+            try:
+                cal.getImuToCameraExtrinsics(dai.CameraBoardSocket.CAM_A)
+            except Exception:
+                cal.setImuExtrinsics(dai.CameraBoardSocket.CAM_A, IMU_R, IMU_T, IMU_T)
+            dev.setCalibration(cal)
+        except Exception as e:
+            print(f"[asa-vision] SLAM calibration step failed, running PPE only: {e}", flush=True)
+            dev = None
+    with (dai.Pipeline(dev) if dev else dai.Pipeline()) as p:
+        if dev:
+            p.setCalibrationData(cal)
         cam   = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
         left  = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
         right = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
@@ -254,8 +329,29 @@ def main():
         pq = per_nn.out.createOutputQueue(maxSize=4, blocking=False)
         vq = hat_nn.passthrough.createOutputQueue(maxSize=4, blocking=False)
         sq = per_nn.passthrough.createOutputQueue(maxSize=1, blocking=False)
+        slam_q = grid_q = None
+        if dev:
+            try:
+                grey = cam.requestOutput(SLAM_SIZE, dai.ImgFrame.Type.GRAY8, fps=FPS)
+                imu = p.create(dai.node.IMU)
+                imu.enableIMUSensor([dai.IMUSensor.ACCELEROMETER_RAW, dai.IMUSensor.GYROSCOPE_RAW], 200)
+                imu.setBatchReportThreshold(1); imu.setMaxBatchReports(10)
+                vio = p.create(dai.node.RTABMapVIO)
+                grey.link(vio.rect); stereo.depth.link(vio.depth)
+                if SLAM_IMU:
+                    imu.out.link(vio.imu)
+                slam = p.create(dai.node.RTABMapSLAM)
+                slam.setParams(SLAM_PARAMS)
+                grey.link(slam.rect); stereo.depth.link(slam.depth); vio.transform.link(slam.odom)
+                slam_q = slam.transform.createOutputQueue(maxSize=1, blocking=False)
+                grid_q = slam.occupancyGridMap.createOutputQueue(maxSize=1, blocking=False)
+                print(f"[asa-vision] SLAM branch attached (RTABMapVIO -> RTABMapSLAM, shares PPE depth, imu={'on' if SLAM_IMU else 'off'})", flush=True)
+            except Exception as e:
+                print(f"[asa-vision] SLAM branch not attached, running PPE only: {e}", flush=True)
+                slam_q = grid_q = None
         p.start()
-        print(f"[asa-vision] v3 running -> http://0.0.0.0:{PORT}/", flush=True)
+        print(f"[asa-vision] v4 running -> http://0.0.0.0:{PORT}/  slam={'on' if slam_q else 'off'}", flush=True)
+        last_grid, last_map_t, pose = None, 0.0, {"x": 0.0, "y": 0.0, "yaw": 0.0}
         n, t0, fps = 0, time.monotonic(), 0.0
         last_p, last_p_t, sizes_done = None, 0.0, False
         pending, viol_t, safe_since, last_comply_t = [], 0.0, None, -1e9
@@ -331,6 +427,38 @@ def main():
 
             if now - t0 >= 5:
                 fps, n, t0 = n / (now - t0), 0, now
+
+            if slam_q is not None:
+                try:
+                    m = slam_q.tryGet()
+                    if m is not None:
+                        t = m.getTranslation(); r, pch, yaw = quat_rpy(m.getQuaternion())
+                        pose = {"x": t.x, "y": t.y, "yaw": yaw}
+                        level = abs(r) < 0.5 and abs(pch) < 0.5
+                        if slam_state["level"] is None and level is False:
+                            print(f"[asa-vision] SLAM pose not level at start (roll {math.degrees(r):.0f}, pitch {math.degrees(pch):.0f} deg)", flush=True)
+                        with lock:
+                            slam_state.update(ok=True, x=round(t.x, 3), y=round(t.y, 3), yaw=round(yaw, 3), level=level,
+                                              poses=slam_state["poses"] + 1, ts=round(time.time(), 2))
+                    g = grid_q.tryGet()
+                    if g is not None:
+                        last_grid = g
+                        with lock:
+                            slam_state["grids"] += 1
+                    if last_grid is not None and now - last_map_t >= 1.0:
+                        last_map_t = now
+                        png = render_map(last_grid, pose)
+                        a = last_grid.map.getCvFrame()
+                        with lock:
+                            if png:
+                                map_png["data"], map_png["seq"] = png, map_png["seq"] + 1
+                            slam_state.update(w=int(a.shape[1]), h=int(a.shape[0]), min_x=round(last_grid.minX, 2), min_y=round(last_grid.minY, 2),
+                                              free_m2=round(float((a == GRID_FREE).sum()) * CELL * CELL, 1), occ_cells=int((a == GRID_OCC).sum()))
+                except Exception as e:
+                    print(f"[asa-vision] SLAM poll error: {e}", flush=True)
+                    slam_q = None
+                    with lock:
+                        slam_state["ok"] = False
 
             if frame is not None:
                 h, w = frame.shape[:2]
